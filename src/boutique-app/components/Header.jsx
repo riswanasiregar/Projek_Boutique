@@ -4,15 +4,20 @@ import { useLocation } from 'react-router-dom';
 const pageTitles = {
   '/': 'Dashboard', '/products': 'Products', '/orders': 'Orders',
   '/customers': 'Customers', '/analytics': 'Analytics', '/promotions': 'Promotions',
-  '/reports': 'Reports', '/settings': 'Settings',
+  '/reports': 'Reports', '/settings': 'Settings', '/collections': 'Collections',
+  '/inventory': 'Inventory', '/suppliers': 'Suppliers',
   '/error-400': 'Error 400', '/error-401': 'Error 401', '/error-403': 'Error 403',
 };
+
+// Pages that use search
+const searchablePages = ['/products', '/orders', '/customers', '/collections', '/inventory', '/suppliers', '/promotions'];
 
 export default function Header({ onSearch }) {
   const [search, setSearch] = useState('');
   const [showNotif, setShowNotif] = useState(false);
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname] || 'Page';
+  const showSearch = searchablePages.includes(location.pathname);
 
   const notifications = [
     { id: 1, text: 'New order from Andi Saputra', time: '2m ago', unread: true, icon: '🛍️' },
@@ -26,39 +31,45 @@ export default function Header({ onSearch }) {
     onSearch?.(e.target.value);
   }
 
+  // Reset search when navigating away
+  if (!showSearch && search) {
+    setSearch('');
+    onSearch?.('');
+  }
+
   return (
     <header className="px-6 py-3.5 flex items-center justify-between sticky top-0 z-30"
       style={{ background: '#f5f0eb', borderBottom: '1px solid #e2d9ce' }}>
 
       {/* Left */}
-      <div className="flex items-center gap-3">
-        <div>
-          <h2 className="text-base font-bold" style={{ color: '#3d2e22' }}>{pageTitle}</h2>
-          <p className="text-xs mt-0.5" style={{ color: '#9a8878' }}>
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
+      <div>
+        <h2 className="text-base font-bold" style={{ color: '#3d2e22' }}>{pageTitle}</h2>
+        <p className="text-xs mt-0.5" style={{ color: '#9a8878' }}>
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
       {/* Right */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden sm:block">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#9a8878' }}
-            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Search..."
-            className="pl-9 pr-4 py-2 text-xs rounded-xl w-52 outline-none transition-all"
-            style={{ background: '#ede5d8', border: '1.5px solid #d4c4b0', color: '#3d2e22' }}
-            onFocus={e => { e.target.style.borderColor = '#c9a96e'; e.target.style.background = '#fff'; }}
-            onBlur={e => { e.target.style.borderColor = '#d4c4b0'; e.target.style.background = '#ede5d8'; }}
-          />
-        </div>
+        {/* Search — only on searchable pages */}
+        {showSearch && (
+          <div className="relative hidden sm:block">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#9a8878' }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder={`Search ${pageTitle.toLowerCase()}...`}
+              className="pl-9 pr-4 py-2 text-xs rounded-xl w-56 outline-none transition-all"
+              style={{ background: '#ede5d8', border: '1.5px solid #d4c4b0', color: '#3d2e22' }}
+              onFocus={e => { e.target.style.borderColor = '#c9a96e'; e.target.style.background = '#fff'; }}
+              onBlur={e => { e.target.style.borderColor = '#d4c4b0'; e.target.style.background = '#ede5d8'; }}
+            />
+          </div>
+        )}
 
         {/* Notification */}
         <div className="relative">
@@ -76,7 +87,7 @@ export default function Header({ onSearch }) {
           </button>
 
           {showNotif && (
-            <div className="absolute right-0 top-full mt-2 w-76 rounded-2xl shadow-xl z-50 overflow-hidden"
+            <div className="absolute right-0 top-full mt-2 rounded-2xl shadow-xl z-50 overflow-hidden"
               style={{ background: '#fff', border: '1px solid #e2d9ce', width: '288px' }}>
               <div className="px-4 py-3 flex items-center justify-between"
                 style={{ borderBottom: '1px solid #f0ebe4', background: '#faf7f4' }}>
