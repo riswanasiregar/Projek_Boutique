@@ -6,8 +6,6 @@ export default function Error400() {
       code={400}
       title="Bad Request"
       description="Permintaan tidak valid. Periksa kembali data yang Anda kirimkan."
-      image="/img/error400.png"
-      accentColor="#8bb5c9"
     />
   );
 }

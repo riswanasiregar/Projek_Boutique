@@ -6,8 +6,6 @@ export default function Error401() {
       code={401}
       title="Unauthorized"
       description="Akses ditolak. Anda perlu login untuk mengakses halaman ini."
-      image="/img/error401.png"
-      accentColor="#c9a96e"
     />
   );
 }

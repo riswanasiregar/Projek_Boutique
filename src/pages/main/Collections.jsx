@@ -5,12 +5,12 @@ import PageHeader from '../../components/PageHeader';
 const P = { primary: '#3d2e22', accent: '#c9a96e', bg: '#f5f0eb', surface: '#ede5d8', border: '#d4c4b0', text: '#3d2e22', muted: '#9a8878' };
 
 const initialCollections = [
-  { id: 'COL-001', name: 'Spring Bloom 2026', season: 'Spring', year: 2026, items: 24, status: 'Active', cover: '🌸', desc: 'Fresh florals and pastel tones for the new season', tags: ['Floral', 'Pastel', 'Casual'] },
-  { id: 'COL-002', name: 'Summer Luxe', season: 'Summer', year: 2026, items: 18, status: 'Active', cover: '☀️', desc: 'Lightweight fabrics and vibrant colors for summer days', tags: ['Linen', 'Vibrant', 'Resort'] },
-  { id: 'COL-003', name: 'Autumn Elegance', season: 'Autumn', year: 2025, items: 32, status: 'Archived', cover: '🍂', desc: 'Rich earth tones and layered looks for the cooler months', tags: ['Earth Tones', 'Layered', 'Formal'] },
-  { id: 'COL-004', name: 'Winter Noir', season: 'Winter', year: 2025, items: 20, status: 'Archived', cover: '❄️', desc: 'Dark, sophisticated pieces for the winter wardrobe', tags: ['Dark', 'Sophisticated', 'Outerwear'] },
-  { id: 'COL-005', name: 'Capsule Essentials', season: 'All Season', year: 2026, items: 15, status: 'Active', cover: '✨', desc: 'Timeless wardrobe staples that work year-round', tags: ['Minimal', 'Timeless', 'Versatile'] },
-  { id: 'COL-006', name: 'Bridal Edit', season: 'All Season', year: 2026, items: 12, status: 'Draft', cover: '💍', desc: 'Elegant pieces for the modern bride and her entourage', tags: ['Bridal', 'Elegant', 'White'] },
+  { id: 'COL-001', name: 'Spring Bloom 2026', season: 'Spring', year: 2026, items: 24, status: 'Active', cover: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80', desc: 'Fresh florals and pastel tones for the new season', tags: ['Floral', 'Pastel', 'Casual'] },
+  { id: 'COL-002', name: 'Summer Luxe', season: 'Summer', year: 2026, items: 18, status: 'Active', cover: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80', desc: 'Lightweight fabrics and vibrant colors for summer days', tags: ['Linen', 'Vibrant', 'Resort'] },
+  { id: 'COL-003', name: 'Autumn Elegance', season: 'Autumn', year: 2025, items: 32, status: 'Archived', cover: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80', desc: 'Rich earth tones and layered looks for the cooler months', tags: ['Earth Tones', 'Layered', 'Formal'] },
+  { id: 'COL-004', name: 'Winter Noir', season: 'Winter', year: 2025, items: 20, status: 'Archived', cover: 'https://images.unsplash.com/photo-1548624313-0396c75e4b1a?w=600&q=80', desc: 'Dark, sophisticated pieces for the winter wardrobe', tags: ['Dark', 'Sophisticated', 'Outerwear'] },
+  { id: 'COL-005', name: 'Capsule Essentials', season: 'All Season', year: 2026, items: 15, status: 'Active', cover: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80', desc: 'Timeless wardrobe staples that work year-round', tags: ['Minimal', 'Timeless', 'Versatile'] },
+  { id: 'COL-006', name: 'Bridal Edit', season: 'All Season', year: 2026, items: 12, status: 'Draft', cover: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80', desc: 'Elegant pieces for the modern bride and her entourage', tags: ['Bridal', 'Elegant', 'White'] },
 ];
 
 const seasonColors = {
@@ -112,9 +112,14 @@ export default function Collections() {
               <div key={col.id} className="rounded-2xl overflow-hidden transition-shadow hover:shadow-lg cursor-pointer"
                 style={{ background: '#fff', border: '1px solid #e2d9ce' }}>
                 {/* Cover */}
-                <div className="h-36 flex items-center justify-center relative overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${seasonStyle.bg}, #ede5d8)` }}>
-                  <span className="text-6xl">{col.cover}</span>
+                <div className="h-36 relative overflow-hidden">
+                  <img
+                    src={col.cover}
+                    alt={col.name}
+                    className="w-full h-full object-cover"
+                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.background = `linear-gradient(135deg, ${seasonStyle.bg}, #ede5d8)`; }}
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(61,46,34,0.45) 0%, transparent 60%)' }} />
                   <div className="absolute top-3 right-3">
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                       style={{ background: statusStyle.bg, color: statusStyle.color }}>
@@ -173,7 +178,10 @@ export default function Collections() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{col.cover}</span>
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                          <img src={col.cover} alt={col.name} className="w-full h-full object-cover"
+                            onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        </div>
                         <div>
                           <p className="font-semibold text-sm" style={{ color: P.text }}>{col.name}</p>
                           <p className="text-xs" style={{ color: P.muted }}>{col.id}</p>

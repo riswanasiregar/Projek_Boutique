@@ -5,12 +5,12 @@ import PageHeader from '../../components/PageHeader';
 const P = { primary: '#3d2e22', accent: '#c9a96e', text: '#3d2e22', muted: '#9a8878' };
 
 const initialSuppliers = [
-  { id: 'SUP-001', name: 'Batik Nusantara', contact: 'Ibu Sari', email: 'sari@batiknusantara.com', phone: '021-5551234', category: 'Fabric', status: 'Active', rating: 5, lastOrder: '2026-03-01', totalOrders: 24 },
-  { id: 'SUP-002', name: 'Silk Road Textiles', contact: 'Mr. Chen', email: 'chen@silkroad.com', phone: '021-5555678', category: 'Fabric', status: 'Active', rating: 4, lastOrder: '2026-02-20', totalOrders: 18 },
-  { id: 'SUP-003', name: 'Lace & Thread Co.', contact: 'Ms. Dewi', email: 'dewi@lacethread.com', phone: '021-5559012', category: 'Accessories', status: 'Active', rating: 5, lastOrder: '2026-03-05', totalOrders: 31 },
-  { id: 'SUP-004', name: 'Premium Buttons', contact: 'Pak Budi', email: 'budi@prembuttons.com', phone: '021-5553456', category: 'Accessories', status: 'Inactive', rating: 3, lastOrder: '2025-12-10', totalOrders: 8 },
-  { id: 'SUP-005', name: 'EcoFabric Indonesia', contact: 'Ibu Rina', email: 'rina@ecofabric.id', phone: '021-5557890', category: 'Sustainable', status: 'Active', rating: 5, lastOrder: '2026-03-08', totalOrders: 12 },
-  { id: 'SUP-006', name: 'Zipper World', contact: 'Mr. Hasan', email: 'hasan@zipperworld.com', phone: '021-5552345', category: 'Accessories', status: 'Active', rating: 4, lastOrder: '2026-02-28', totalOrders: 20 },
+  { id: 'SUP-001', name: 'Batik Nusantara', contact: 'Ibu Sari', email: 'sari@batiknusantara.com', phone: '021-5551234', category: 'Fabric', status: 'Active', rating: 5, lastOrder: '2026-03-01', totalOrders: 24, avatar: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200&q=80' },
+  { id: 'SUP-002', name: 'Silk Road Textiles', contact: 'Mr. Chen', email: 'chen@silkroad.com', phone: '021-5555678', category: 'Fabric', status: 'Active', rating: 4, lastOrder: '2026-02-20', totalOrders: 18, avatar: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=200&q=80' },
+  { id: 'SUP-003', name: 'Lace & Thread Co.', contact: 'Ms. Dewi', email: 'dewi@lacethread.com', phone: '021-5559012', category: 'Accessories', status: 'Active', rating: 5, lastOrder: '2026-03-05', totalOrders: 31, avatar: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=200&q=80' },
+  { id: 'SUP-004', name: 'Premium Buttons', contact: 'Pak Budi', email: 'budi@prembuttons.com', phone: '021-5553456', category: 'Accessories', status: 'Inactive', rating: 3, lastOrder: '2025-12-10', totalOrders: 8, avatar: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80' },
+  { id: 'SUP-005', name: 'EcoFabric Indonesia', contact: 'Ibu Rina', email: 'rina@ecofabric.id', phone: '021-5557890', category: 'Sustainable', status: 'Active', rating: 5, lastOrder: '2026-03-08', totalOrders: 12, avatar: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&q=80' },
+  { id: 'SUP-006', name: 'Zipper World', contact: 'Mr. Hasan', email: 'hasan@zipperworld.com', phone: '021-5552345', category: 'Accessories', status: 'Active', rating: 4, lastOrder: '2026-02-28', totalOrders: 20, avatar: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&q=80' },
 ];
 
 const categoryColors = {
@@ -110,8 +110,15 @@ export default function Suppliers() {
             <div key={s.id} className="rounded-2xl p-5 transition-shadow hover:shadow-md"
               style={{ background: '#fff', border: '1px solid #e2d9ce' }}>
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                  style={{ background: '#f5f0eb' }}>🏭</div>
+                <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0"
+                  style={{ border: '1px solid #e2d9ce' }}>
+                  <img
+                    src={s.avatar}
+                    alt={s.name}
+                    className="w-full h-full object-cover"
+                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.background = '#f5f0eb'; e.currentTarget.parentElement.innerHTML = '<span style="font-size:20px;display:flex;align-items:center;justify-content:center;height:100%">🏭</span>'; }}
+                  />
+                </div>
                 <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                   style={s.status === 'Active' ? { background: '#eef4ee', color: '#4a7c59' } : { background: '#f5eeec', color: '#8a4a3a' }}>
                   {s.status}
