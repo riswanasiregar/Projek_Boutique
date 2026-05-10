@@ -1,29 +1,47 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { removeToken } from '../utils/auth';
-import {
-  BsHouseDoor, BsClipboardCheck, BsPeopleFill,
-  BsBoxArrowRight, BsStars
-} from 'react-icons/bs';
 
-const SB = {
-  bg:         '#FDFAF6',
-  border:     '#EDE8E3',
-  logoAccent: '#C8A96A',
-  labelText:  '#A89888',
-  itemText:   '#6B5C52',
-  itemHover:  '#F5EFE8',
-  activeBg:   '#F0E8D8',
-  activeText: '#8A6D2F',
-  activeLine: '#C8A96A',
-  userBg:     '#F5EFE8',
-  userText:   '#1A1614',
-  userSub:    '#A89888',
+const F = { fontFamily: '"Inter", sans-serif' };
+
+const C = {
+  bg:         '#FFFFFF',
+  border:     '#E6EFF5',
+  text:       '#343C6A',
+  muted:      '#B1B1B1',
+  activeBg:   '#E7EDFF',
+  activeText: '#2D60FF',
+  hoverBg:    '#F5F7FA',
+  activeLine: '#2D60FF',
 };
 
 const mainMenu = [
-  { to: '/', label: 'Dashboard', end: true, icon: <BsHouseDoor size={16} /> },
-  { to: '/orders',    label: 'Orders',    icon: <BsClipboardCheck size={16} /> },
-  { to: '/customers', label: 'Customers', icon: <BsPeopleFill size={16} /> },
+  {
+    to: '/', label: 'Dashboard', end: true,
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
+  {
+    to: '/orders', label: 'Orders',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+    ),
+  },
+  {
+    to: '/customers', label: 'Customers',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
 ];
 
 function NavItem({ item }) {
@@ -31,31 +49,31 @@ function NavItem({ item }) {
     <NavLink
       to={item.to}
       end={item.end}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative"
+      className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all relative"
       style={({ isActive }) =>
         isActive
-          ? { background: SB.activeBg, color: SB.activeText }
-          : { color: SB.itemText }
+          ? { background: C.activeBg, color: C.activeText, ...F }
+          : { color: C.muted, ...F }
       }
       onMouseEnter={e => {
-        if (e.currentTarget.style.background !== SB.activeBg)
-          e.currentTarget.style.background = SB.itemHover;
+        if (!e.currentTarget.style.background.includes('E7EDFF'))
+          e.currentTarget.style.background = C.hoverBg;
       }}
       onMouseLeave={e => {
-        if (e.currentTarget.style.background !== SB.activeBg)
+        if (!e.currentTarget.style.background.includes('E7EDFF'))
           e.currentTarget.style.background = 'transparent';
       }}
     >
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full"
-              style={{ background: SB.activeLine }} />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full"
+              style={{ background: C.activeLine }} />
           )}
-          <span className="flex-shrink-0" style={{ color: isActive ? SB.activeText : SB.itemText }}>
+          <span className="flex-shrink-0" style={{ color: isActive ? C.activeText : C.muted }}>
             {item.icon}
           </span>
-          <span className="flex-1">{item.label}</span>
+          <span className="flex-1 font-medium">{item.label}</span>
         </>
       )}
     </NavLink>
@@ -68,78 +86,52 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 min-h-screen flex flex-col"
-      style={{ background: SB.bg, borderRight: `1px solid ${SB.border}` }}>
+      style={{ background: C.bg, borderRight: `1px solid ${C.border}`, ...F }}>
 
       {/* Logo */}
-      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB.border}` }}>
+      <div className="px-6 py-6" style={{ borderBottom: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-3">
-          <img src="/img/logo.png" alt="Boutique Logo"
-            className="w-9 h-9 rounded-lg object-contain flex-shrink-0"
-            style={{ background: SB.logoAccent, padding: '4px' }} />
-          <div>
-            <h1 className="text-sm font-bold tracking-widest uppercase leading-none"
-              style={{ color: '#1A1614', letterSpacing: '0.12em' }}>
-              Boutique
-            </h1>
-            <p className="text-xs mt-0.5 tracking-wider uppercase"
-              style={{ color: SB.labelText, fontSize: '9px', letterSpacing: '0.15em' }}>
-              Fashion Admin
-            </p>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: '#E7EDFF' }}>
+            <svg className="w-6 h-6" fill="none" stroke="#2D60FF" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
           </div>
-        </div>
-      </div>
-
-      {/* Season tag */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{ background: SB.userBg, border: `1px solid ${SB.border}` }}>
-          <BsStars size={10} style={{ color: SB.logoAccent }} />
-          <span className="text-xs tracking-wider" style={{ color: SB.labelText, fontSize: '10px' }}>
-            SS 2026 Collection
+          <span className="text-xl font-bold" style={{ color: C.text, ...F }}>
+            Boutique
           </span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto">
-        <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest"
-          style={{ color: SB.labelText, fontSize: '9px', letterSpacing: '0.18em' }}>
-          Navigation
-        </p>
-        <div className="space-y-0.5">
-          {mainMenu.map(item => <NavItem key={item.to} item={item} />)}
-        </div>
+      <nav className="flex-1 px-3 py-6 overflow-y-auto space-y-1">
+        {mainMenu.map(item => <NavItem key={item.to} item={item} />)}
       </nav>
 
       {/* User + logout */}
-      <div className="px-3 py-4" style={{ borderTop: `1px solid ${SB.border}` }}>
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1"
-          style={{ background: SB.userBg }}>
-          <img src="/img/logo.png" alt="Logo"
-            className="w-8 h-8 rounded-full object-contain flex-shrink-0"
-            style={{ background: SB.logoAccent, padding: '3px' }} />
+      <div className="px-4 py-5" style={{ borderTop: `1px solid ${C.border}` }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+            style={{ background: '#E7EDFF' }}>
+            <img src="/img/profile.jpg" alt="Admin"
+              className="w-full h-full object-cover"
+              onError={e => { e.currentTarget.style.display = 'none'; }} />
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: SB.userText }}>Admin</p>
-            <p className="text-xs truncate" style={{ color: SB.userSub, fontSize: '10px' }}>
-              boutique@admin.com
-            </p>
+            <p className="text-sm font-semibold truncate" style={{ color: C.text }}>Admin</p>
+            <p className="text-xs truncate" style={{ color: C.muted }}>boutique@admin.com</p>
           </div>
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-          style={{ color: SB.itemText }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = '#FEE8E8';
-            e.currentTarget.style.color = '#C0392B';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = SB.itemText;
-          }}
-        >
-          <BsBoxArrowRight size={16} />
+        <button onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+          style={{ color: C.muted, ...F }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#FEE8E8'; e.currentTarget.style.color = '#FE5C73'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.muted; }}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
           Sign Out
         </button>
       </div>
