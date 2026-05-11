@@ -1,51 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --font-poppins: "Poppins", sans-serif;
-  --font-jakarta: "PlusJakartaSans", sans-serif;
-  --font-inter: "Inter", sans-serif;
+  /* ── Fonts ── */
+  --font-poppins:  "Poppins", sans-serif;
+  --font-jakarta:  "PlusJakartaSans", sans-serif;
+  --font-inter:    "Inter", sans-serif;
 
-  --gradient-primary: linear-gradient(
-    90deg,
-    #123288 0%,
-    #295EEC 100%
-  );
-  --color-primary-1: #FEAA09;
-  --color-primary-2: #343C6A;
-  --color-primary-3: #2D60FF;
+  /* ── Brand ── */
+  --color-primary-1:  #FEAA09;
+  --color-primary-2:  #343C6A;
+  --color-primary-3:  #2D60FF;
+  --color-secondary:  #FE5C73;
 
+  /* ── Gradient stops (dipakai via var()) ── */
+  --color-grad-from:  #123288;
+  --color-grad-to:    #295EEC;
 
-  --color-secondary: #FE5C73;
+  /* Gradient sebagai custom property untuk dipakai di style={} */
+  --gradient-primary: linear-gradient(90deg, #123288 0%, #295EEC 100%);
 
-  --color-accent-green:#16DBCC;
-  --color-accent-shadow-green:#DCFAF8;
-  --color-accent-pink:#FF82AC;
-  ---color-accent-pink-shadow:#FFE0EB;
-  --color-accent-blue:#396AFF;
-  --color-accent-blue-shadow:#E7EDFF;
-  --color-accent-pink-notifikasi:#FE5C73;
-  --color-accent-yellow:FFBB38;
-   --color-accent-yellow-shadow:FFF5D9;
-   
+  /* ── Accent ── */
+  --color-accent-green:        #16DBCC;
+  --color-accent-green-shadow: #DCFAF8;
+  --color-accent-pink:         #FF82AC;
+  --color-accent-pink-shadow:  #FFE0EB;
+  --color-accent-blue:         #396AFF;
+  --color-accent-blue-shadow:  #E7EDFF;
+  --color-accent-yellow:       #FFBB38;
+  --color-accent-yellow-shadow:#FFF5D9;
 
-  --color-neutral: #FFFFFF;
+  /* ── Neutral ── */
+  --color-neutral:      #FFFFFF;
   --color-neutral-gray: #B1B1B1;
-  --color-neutral-teks:#718EBF;
+  --color-neutral-teks: #718EBF;
+  --color-neutral-bg:   #F5F7FA;
+  --color-neutral-border:#E6EFF5;
 
+  /* ── Semantic ── */
   --color-success: #22C55E;
-  --color-error: #EF4444;
+  --color-error:   #EF4444;
   --color-warning: #FACC15;
-  --color-info: #3B82F6;
+  --color-info:    #3B82F6;
 
+  /* ── Auth panel ── */
+  --color-auth-bg:    #EEF3FF;
+  --color-auth-panel: #FAFAFA;
 }
 
+/* ── Font faces ── */
 @font-face {
   font-family: "Poppins";
   src: url("/fonts/Poppins-Regular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
-
 
 @font-face {
   font-family: "PlusJakartaSans";
@@ -63,18 +71,28 @@
 
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/InterItalic.ttf") format("truetype");
-  font-weight: 100 900;
-  font-style: italic;
-}
-@font-face {
-  font-family: "Inter";
   src: url("/fonts/Inter.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Poppins", sans-serif;
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/InterItalic.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: italic;
 }
 
+/* ── Global defaults ── */
+* {
+  font-family: "Inter", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Inter", sans-serif;
+}
+
+/* ── Custom utility: gradient primary ── */
+.bg-gradient-primary {
+  background: linear-gradient(90deg, #123288 0%, #295EEC 100%);
+}
