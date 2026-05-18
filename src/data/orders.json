@@ -24,8 +24,7 @@
   { "id": "ORD-023", "customerName": "Wahyu Nugroho",    "status": "Cancelled",  "totalPrice": 50000,  "orderDate": "2026-02-21", "address": "Jl. Enggano No. 15, Tanjung Priok, Jakarta Utara 14310" },
   { "id": "ORD-024", "customerName": "Xena Putri",       "status": "Completed",  "totalPrice": 240000, "orderDate": "2026-02-23", "address": "Jl. Pondok Indah No. 62, Pesanggrahan, Jakarta Selatan 12310" },
   { "id": "ORD-025", "customerName": "Yusuf Anwar",      "status": "Pending",    "totalPrice": 120000, "orderDate": "2026-02-25", "address": "Jl. Bekasi Raya No. 77, Cakung, Jakarta Timur 13910" },
-  { "id": "ORD-026", "customerName": "Zahra Nadia",      "status": "Completed",  "totalPrice": 310000, "orderDate": "2026-02-27", "address": "Jl. Hayam Wuruk No. 20, Taman Sari, Jakarta Barat 11180" },
-  { "id": "ORD-027", "customerName": "Agus Setiawan",    "status": "Cancelled",  "totalPrice": 35000,  "orderDate": "2026-03-01", "address": "Jl. Wahid Hasyim No. 38, Menteng, Jakarta Pusat 10340" },
+ { "id": "ORD-027", "customerName": "Agus Setiawan",    "status": "Cancelled",  "totalPrice": 35000,  "orderDate": "2026-03-01", "address": "Jl. Wahid Hasyim No. 38, Menteng, Jakarta Pusat 10340" },
   { "id": "ORD-028", "customerName": "Bagas Kurniawan",  "status": "Completed",  "totalPrice": 195000, "orderDate": "2026-03-03", "address": "Jl. Ampera Raya No. 9, Cilandak, Jakarta Selatan 12560" },
   { "id": "ORD-029", "customerName": "Citra Anggraini",  "status": "Pending",    "totalPrice": 88000,  "orderDate": "2026-03-05", "address": "Jl. Muara Baru No. 4, Penjaringan, Jakarta Utara 14440" },
   { "id": "ORD-030", "customerName": "Dian Permata",     "status": "Completed",  "totalPrice": 260000, "orderDate": "2026-03-07", "address": "Jl. Kalimalang No. 51, Duren Sawit, Jakarta Timur 13440" }

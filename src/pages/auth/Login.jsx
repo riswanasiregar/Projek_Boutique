@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { BsEnvelope, BsLock, BsEye, BsEyeSlash } from 'react-icons/bs';
+
 import { setToken } from '../../utils/auth';
-import { BsEnvelope, BsLock, BsEye, BsEyeSlash, BsExclamationTriangle } from 'react-icons/bs';
+import InputField from '../../components/InputField';
+import Button from '../../components/Button';
+import Alert from '../../components/Alert';
+import Divider from '../../components/Divider';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -43,67 +48,38 @@ export default function Login() {
 
   return (
     <div className="font-jakarta">
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 text-xs rounded-xl px-4 py-3 mb-5
-          bg-error/20 text-neutral border border-error/40">
-          <BsExclamationTriangle size={13} className="flex-shrink-0" />
-          {error}
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center gap-2 text-xs rounded-xl px-4 py-3 mb-5
-          bg-neutral/15 text-neutral border border-neutral/25">
-          <div className="w-3.5 h-3.5 border-2 border-neutral border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          Mohon Tunggu...
-        </div>
-      )}
+      {error   && <Alert variant="error"   message={error}           className="mb-5" />}
+      {loading && <Alert variant="loading" message="Mohon Tunggu..." className="mb-5" />}
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
-        {/* Email */}
-        <div>
-          <label className="block text-xs font-semibold mb-2 text-neutral/90">
-            Email Here
-          </label>
-          <div className="relative">
-            <BsEnvelope size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral/60" />
-            <input
-              type="text" name="username"
-              value={dataForm.username} onChange={handleChange}
-              placeholder="example@email.com" required
-              className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all
-                bg-neutral/15 border border-neutral/35 text-neutral placeholder:text-neutral/50
-                focus:border-neutral focus:bg-neutral/25 font-jakarta"
-            />
-          </div>
-        </div>
+        {/* Email / Username */}
+        <InputField
+          variant="auth"
+          label="Email Here"
+          name="username"
+          value={dataForm.username}
+          onChange={handleChange}
+          placeholder="example@email.com"
+          required
+          icon={<BsEnvelope size={15} />}
+        />
 
         {/* Password */}
         <div>
-          <label className="block text-xs font-semibold mb-2 text-neutral/90">
-            Password Here
-          </label>
-          <div className="relative">
-            <BsLock size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral/60" />
-            <input
-              type={showPass ? 'text' : 'password'} name="password"
-              value={dataForm.password} onChange={handleChange}
-              placeholder="at least 8 characters" required
-              className="w-full pl-10 pr-11 py-3 rounded-xl text-sm outline-none transition-all
-                bg-neutral/15 border border-neutral/35 text-neutral placeholder:text-neutral/50
-                focus:border-neutral focus:bg-neutral/25 font-jakarta"
-            />
-            <button type="button" onClick={() => setShowPass(!showPass)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral/70 hover:text-neutral transition-colors">
-              {showPass ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
-            </button>
-          </div>
+          <InputField
+            variant="auth"
+            label="Password Here"
+            name="password"
+            type={showPass ? 'text' : 'password'}
+            value={dataForm.password}
+            onChange={handleChange}
+            placeholder="at least 8 characters"
+            required
+            icon={<BsLock size={15} />}
+            rightIcon={showPass ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
+            onRightIconClick={() => setShowPass(!showPass)}
+          />
           <div className="flex justify-end mt-1.5">
             <Link to="/forgot" className="text-xs text-neutral/75 hover:underline font-jakarta">
               Forget password?
@@ -112,33 +88,28 @@ export default function Login() {
         </div>
 
         {/* Submit */}
-        <button type="submit" disabled={loading}
-          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all
-            disabled:opacity-50 flex items-center justify-center gap-2
-            bg-gradient-primary text-neutral hover:opacity-90 font-jakarta"
+        <Button
+          type="submit"
+          variant="gradient"
+          size="lg"
+          loading={loading}
+          className="w-full font-bold tracking-wide font-jakarta"
           style={{ boxShadow: '0 4px 20px #12328840' }}>
-          {loading
-            ? <><div className="w-4 h-4 border-2 border-neutral border-t-transparent rounded-full animate-spin" /> Mohon Tunggu...</>
-            : 'Login'
-          }
-        </button>
+          {loading ? 'Mohon Tunggu...' : 'Login'}
+        </Button>
       </form>
 
       {/* Divider */}
-      <div className="flex items-center gap-3 my-5">
-        <div className="flex-1 h-px bg-neutral/25" />
-        <span className="text-xs text-neutral/60 font-jakarta">or</span>
-        <div className="flex-1 h-px bg-neutral/25" />
-      </div>
+      <Divider variant="auth" label="or" className="my-5" />
 
-      {/* Social */}
+      {/* Social buttons */}
       <div className="space-y-3 mb-6">
         <button type="button"
           onClick={() => {
             const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             const u = document.querySelector('[name="username"]');
             const p = document.querySelector('[name="password"]');
-            setter.call(u, 'emilys');    u.dispatchEvent(new Event('input', { bubbles: true }));
+            setter.call(u, 'emilys');     u.dispatchEvent(new Event('input', { bubbles: true }));
             setter.call(p, 'emilyspass'); p.dispatchEvent(new Event('input', { bubbles: true }));
           }}
           className="w-full flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-semibold

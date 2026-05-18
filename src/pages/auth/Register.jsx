@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BsEnvelope, BsLock, BsEye, BsEyeSlash, BsCheckCircle } from 'react-icons/bs';
 
+import InputField from '../../components/InputField';
+import Button from '../../components/Button';
+import Divider from '../../components/Divider';
+
 export default function Register() {
-  const [dataForm, setDataForm] = useState({ email: '', password: '', confirmPassword: '' });
+  const [dataForm, setDataForm]       = useState({ email: '', password: '', confirmPassword: '' });
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors]           = useState({});
@@ -34,43 +38,40 @@ export default function Register() {
     alert('Register berhasil!');
   }
 
-  const FieldError = ({ name }) => errors[name]
-    ? <p className="text-xs mt-1 text-error/80 font-jakarta">⚠ {errors[name]}</p>
-    : null;
-
-  const inputClass = (hasErr) =>
-    `w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all font-jakarta
-     bg-neutral/15 text-neutral placeholder:text-neutral/50
-     border ${hasErr ? 'border-error/60' : 'border-neutral/35'}
-     focus:border-neutral focus:bg-neutral/25`;
-
   return (
     <div className="font-jakarta">
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* Email */}
-        <div>
-          <label className="block text-xs font-semibold mb-2 text-neutral/90">Type Email Here</label>
-          <div className="relative">
-            <BsEnvelope size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral/60" />
-            <input type="text" name="email" value={dataForm.email} onChange={handleChange}
-              placeholder="example@email.com" required className={inputClass(errors.email)} />
-          </div>
-          <FieldError name="email" />
-        </div>
+        <InputField
+          variant="auth"
+          label="Type Email Here"
+          name="email"
+          type="text"
+          value={dataForm.email}
+          onChange={handleChange}
+          placeholder="example@email.com"
+          required
+          error={errors.email}
+          icon={<BsEnvelope size={15} />}
+        />
 
         {/* Password */}
         <div>
-          <label className="block text-xs font-semibold mb-2 text-neutral/90">Type Password Here</label>
-          <div className="relative">
-            <BsLock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral/60" />
-            <input type={showPass ? 'text' : 'password'} name="password" value={dataForm.password} onChange={handleChange}
-              placeholder="at least 8 characters" required className={`${inputClass(errors.password)} pr-11`} />
-            <button type="button" onClick={() => setShowPass(!showPass)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral/70 hover:text-neutral transition-colors">
-              {showPass ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
-            </button>
-          </div>
+          <InputField
+            variant="auth"
+            label="Type Password Here"
+            name="password"
+            type={showPass ? 'text' : 'password'}
+            value={dataForm.password}
+            onChange={handleChange}
+            placeholder="at least 8 characters"
+            required
+            error={errors.password}
+            icon={<BsLock size={15} />}
+            rightIcon={showPass ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
+            onRightIconClick={() => setShowPass(!showPass)}
+          />
           {/* Hint chips */}
           <div className="flex gap-2 mt-2 flex-wrap">
             {[
@@ -79,47 +80,44 @@ export default function Register() {
             ].map(hint => (
               <div key={hint.label}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all font-jakarta
-                  ${hint.met ? 'bg-neutral/25 text-neutral border border-neutral/50' : 'bg-neutral/10 text-neutral/55 border border-neutral/20'}`}>
+                  ${hint.met
+                    ? 'bg-neutral/25 text-neutral border border-neutral/50'
+                    : 'bg-neutral/10 text-neutral/55 border border-neutral/20'}`}>
                 <BsCheckCircle size={11} className={hint.met ? 'text-neutral' : 'text-neutral/40'} />
                 {hint.label}
               </div>
             ))}
           </div>
-          <FieldError name="password" />
         </div>
 
         {/* Confirm Password */}
-        <div>
-          <label className="block text-xs font-semibold mb-2 text-neutral/90">Retype-Password Here</label>
-          <div className="relative">
-            <BsLock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral/60" />
-            <input type={showConfirm ? 'text' : 'password'} name="confirmPassword" value={dataForm.confirmPassword} onChange={handleChange}
-              placeholder="at least 8 characters" required className={`${inputClass(errors.confirmPassword)} pr-11`} />
-            <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral/70 hover:text-neutral transition-colors">
-              {showConfirm ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
-            </button>
-          </div>
-          <FieldError name="confirmPassword" />
-        </div>
+        <InputField
+          variant="auth"
+          label="Retype-Password Here"
+          name="confirmPassword"
+          type={showConfirm ? 'text' : 'password'}
+          value={dataForm.confirmPassword}
+          onChange={handleChange}
+          placeholder="at least 8 characters"
+          required
+          error={errors.confirmPassword}
+          icon={<BsLock size={15} />}
+          rightIcon={showConfirm ? <BsEyeSlash size={16} /> : <BsEye size={16} />}
+          onRightIconClick={() => setShowConfirm(!showConfirm)}
+        />
 
         {/* Submit */}
-        <button type="submit"
-          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all
-            hover:opacity-90 bg-gradient-primary text-neutral font-jakarta"
+        <Button
+          type="submit" variant="gradient" size="lg" className="w-full font-bold tracking-wide font-jakarta"
           style={{ boxShadow: '0 4px 20px #12328840' }}>
           Signup
-        </button>
+        </Button>
       </form>
 
       {/* Divider */}
-      <div className="flex items-center gap-3 my-4">
-        <div className="flex-1 h-px bg-neutral/25" />
-        <span className="text-xs text-neutral/60 font-jakarta">or</span>
-        <div className="flex-1 h-px bg-neutral/25" />
-      </div>
+      <Divider variant="auth" label="or" className="my-4" />
 
-      {/* Social */}
+      {/* Social buttons */}
       <div className="space-y-3 mb-5">
         <button type="button"
           className="w-full flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-semibold
