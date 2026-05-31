@@ -7,7 +7,7 @@ import { StatCard, CardHeader } from '../../components/Card';
 import Avatar from '../../components/Avatar';
 import BackButton from '../../components/BackButton';
 import EmptyState from '../../components/EmptyState';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
 import InfoRow from '../../components/InfoRow';
 
@@ -27,7 +27,7 @@ export default function CustomerDetail() {
       title="Customer tidak ditemukan"
       description={`ID ${id} tidak ada dalam data.`}
       action={
-        <Button variant="primary" onClick={() => navigate('/customers')} className="rounded-full">
+        <Button variant="default" onClick={() => navigate('/customers')} className="rounded-full">
           ← Kembali ke Customers
         </Button>
       }

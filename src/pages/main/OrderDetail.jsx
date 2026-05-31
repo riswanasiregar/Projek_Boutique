@@ -9,7 +9,7 @@ import Timeline from '../../components/Timeline';
 import InfoRow from '../../components/InfoRow';
 import EmptyState from '../../components/EmptyState';
 import { CardHeader } from '../../components/Card';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
 
 const orderItemsMap = {
@@ -60,7 +60,7 @@ export default function OrderDetail() {
       title="Order tidak ditemukan"
       description={`ID ${id} tidak ada dalam data.`}
       action={
-        <Button variant="primary" onClick={() => navigate('/orders')} className="rounded-full">
+        <Button variant="default" onClick={() => navigate('/orders')} className="rounded-full">
           ← Kembali ke Orders
         </Button>
       }

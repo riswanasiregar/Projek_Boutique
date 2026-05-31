@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { BsEnvelope, BsLock, BsEye, BsEyeSlash, BsCheckCircle } from 'react-icons/bs';
 
 import InputField from '../../components/InputField';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui/button';
 import Divider from '../../components/Divider';
 
 export default function Register() {
