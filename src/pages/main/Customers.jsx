@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import customersData from '../../data/customers.json';
 
@@ -9,11 +9,35 @@ import Modal, { ModalFooter } from '../../components/Modal';
 import InputField from '../../components/InputField';
 import SelectField from '../../components/SelectField';
 import Avatar from '../../components/Avatar';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
 import { TableFooter } from '../../components/Footer';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 const emptyForm = { name: '', email: '', phone: '', loyalty: 'Bronze' };
+
+function buildPageRange(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [];
+  pages.push(1);
+  if (current > 3) pages.push('...');
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('...');
+  pages.push(total);
+  return pages;
+}
 
 export default function Customers() {
   const { searchQuery = '' } = useOutletContext?.() || {};
@@ -21,12 +45,19 @@ export default function Customers() {
   const [activeFilter, setFilter] = useState('All');
   const [showForm, setShowForm]   = useState(false);
   const [form, setForm]           = useState(emptyForm);
+  const [page, setPage]           = useState(1);
 
   const filtered = customers.filter(c => {
     const matchLoyalty = activeFilter === 'All' || c.loyalty === activeFilter;
     const q = searchQuery.toLowerCase();
     return matchLoyalty && (!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
   });
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset ke halaman 1 saat filter atau search berubah
+  useEffect(() => { setPage(1); }, [activeFilter, searchQuery]);
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
   function handleClose()   { setShowForm(false); setForm(emptyForm); }
@@ -65,7 +96,7 @@ export default function Customers() {
               {['All', 'Gold', 'Silver', 'Bronze'].map(f => (
                 <FilterChip key={f} label={f} active={activeFilter === f} onClick={() => setFilter(f)} />
               ))}
-              <Button size="sm" variant="primary" onClick={() => setShowForm(true)}
+              <Button size="sm" variant="default" onClick={() => setShowForm(true)}
                 className="rounded-full text-xs">
                 + Add Customer
               </Button>
@@ -89,10 +120,10 @@ export default function Customers() {
                     No customers found
                   </td>
                 </tr>
-              ) : filtered.map((c, i) => (
+              ) : paginated.map((c, i) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <span className="text-neutral-teks">{String(i + 1).padStart(2, '0')}.</span>
+                    <span className="text-neutral-teks">{String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(2, '0')}.</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -108,7 +139,7 @@ export default function Customers() {
                   <TableCell><LoyaltyBadge loyalty={c.loyalty} /></TableCell>
                   <TableCell>
                     <Link to={`/customers/${c.id}`}>
-                      <Button variant="outline" size="sm" className="rounded-full text-xs">
+                      <Button variant="outline" size="sm" className="rounded-full text-xs border-primary-3 text-primary-3 hover:bg-primary-3 hover:text-white">
                         View Details
                       </Button>
                     </Link>
@@ -119,7 +150,47 @@ export default function Customers() {
           </table>
         </div>
 
-        <TableFooter showing={filtered.length} total={customers.length} label="customers" />
+        <TableFooter showing={paginated.length} total={filtered.length} label="customers" />
+        {totalPages > 1 && (
+          <div className="border-t border-neutral-border px-5 py-3">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={e => { e.preventDefault(); if (page > 1) setPage(page - 1); }}
+                    className={page === 1 ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+
+                {buildPageRange(page, totalPages).map((p, i) =>
+                  p === '...' ? (
+                    <PaginationItem key={`ellipsis-${i}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === page}
+                        onClick={e => { e.preventDefault(); setPage(p); }}>
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={e => { e.preventDefault(); if (page < totalPages) setPage(page + 1); }}
+                    className={page === totalPages ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* Modal */}

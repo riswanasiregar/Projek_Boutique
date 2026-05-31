@@ -5,9 +5,10 @@ import { BsEnvelope, BsLock, BsEye, BsEyeSlash } from 'react-icons/bs';
 
 import { setToken } from '../../utils/auth';
 import InputField from '../../components/InputField';
-import Button from '../../components/Button';
-import Alert from '../../components/Alert';
+import { Button } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import Divider from '../../components/Divider';
+import { AlertCircleIcon, LoaderCircleIcon, CheckCircle2Icon } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -48,8 +49,18 @@ export default function Login() {
 
   return (
     <div className="font-jakarta">
-      {error   && <Alert variant="error"   message={error}           className="mb-5" />}
-      {loading && <Alert variant="loading" message="Mohon Tunggu..." className="mb-5" />}
+      {error && (
+        <Alert variant="destructive" className="mb-5">
+          <AlertCircleIcon />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {loading && (
+        <Alert variant="loading" className="mb-5">
+          <LoaderCircleIcon className="animate-spin" />
+          <AlertDescription>Mohon Tunggu...</AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -92,10 +103,13 @@ export default function Login() {
           type="submit"
           variant="gradient"
           size="lg"
-          loading={loading}
+          disabled={loading}
           className="w-full font-bold tracking-wide font-jakarta"
           style={{ boxShadow: '0 4px 20px #12328840' }}>
-          {loading ? 'Mohon Tunggu...' : 'Login'}
+          {loading
+            ? <><LoaderCircleIcon className="animate-spin w-4 h-4" /> Mohon Tunggu...</>
+            : 'Login'
+          }
         </Button>
       </form>
 

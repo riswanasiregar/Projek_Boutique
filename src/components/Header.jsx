@@ -1,5 +1,13 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 const F = { fontFamily: '"Inter", sans-serif' };
 
@@ -12,7 +20,6 @@ const searchablePages = ['/orders', '/customers'];
 
 export default function Header({ onSearch }) {
   const [search, setSearch] = useState('');
-  const [showNotif, setShowNotif] = useState(false);
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname] || 'Page';
   const showSearch = searchablePages.includes(location.pathname);
@@ -75,38 +82,42 @@ export default function Header({ onSearch }) {
         </button>
 
         {/* Notification bell */}
-        <div className="relative">
-          <button onClick={() => setShowNotif(!showNotif)}
-            className="w-10 h-10 flex items-center justify-center rounded-full relative transition-colors"
-            style={{ background: '#FFF5D9' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#FFE0EB'}
-            onMouseLeave={e => e.currentTarget.style.background = '#FFF5D9'}>
-            <svg className="w-5 h-5" fill="none" stroke="#FFBB38" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {notifications.some(n => n.unread) && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-white"
-                style={{ background: '#FE5C73' }} />
-            )}
-          </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="w-10 h-10 flex items-center justify-center rounded-full relative transition-colors outline-none"
+              style={{ background: '#FFF5D9' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#FFE0EB'}
+              onMouseLeave={e => e.currentTarget.style.background = '#FFF5D9'}>
+              <svg className="w-5 h-5" fill="none" stroke="#FFBB38" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {notifications.some(n => n.unread) && (
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-white"
+                  style={{ background: '#FE5C73' }} />
+              )}
+            </button>
+          </DropdownMenuTrigger>
 
-          {showNotif && (
-            <div className="absolute right-0 top-full mt-2 rounded-2xl shadow-xl z-50 overflow-hidden"
-              style={{ background: '#fff', border: '1px solid #E6EFF5', width: '300px' }}>
-              <div className="px-4 py-3 flex items-center justify-between"
-                style={{ borderBottom: '1px solid #F5F7FA', background: '#FAFAFA' }}>
-                <p className="text-sm font-semibold" style={{ color: '#343C6A', ...F }}>Notifications</p>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: '#FFE0EB', color: '#FE5C73' }}>
-                  {notifications.filter(n => n.unread).length} new
-                </span>
-              </div>
-              {notifications.map((n, i) => (
-                <div key={n.id} className="px-4 py-3 cursor-pointer transition-colors flex items-start gap-3"
-                  style={{ borderTop: i > 0 ? '1px solid #F5F7FA' : 'none' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F5F7FA'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <DropdownMenuContent className="w-[300px] p-0" align="end">
+            {/* Header */}
+            <div className="px-4 py-3 flex items-center justify-between"
+              style={{ borderBottom: '1px solid #F5F7FA', background: '#FAFAFA' }}>
+              <DropdownMenuLabel className="p-0 text-sm font-semibold" style={{ color: '#343C6A', ...F }}>
+                Notifications
+              </DropdownMenuLabel>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: '#FFE0EB', color: '#FE5C73' }}>
+                {notifications.filter(n => n.unread).length} new
+              </span>
+            </div>
+
+            {/* Items */}
+            {notifications.map((n, i) => (
+              <div key={n.id}>
+                {i > 0 && <DropdownMenuSeparator className="my-0" style={{ borderColor: '#F5F7FA' }} />}
+                <DropdownMenuItem className="px-4 py-3 cursor-pointer flex items-start gap-3 rounded-none focus:bg-neutral-bg">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ background: n.unread ? '#E7EDFF' : '#F5F7FA' }}>
                     <svg className="w-4 h-4" fill="none" stroke={n.unread ? '#2D60FF' : '#B1B1B1'} viewBox="0 0 24 24">
@@ -119,11 +130,11 @@ export default function Header({ onSearch }) {
                     <p className="text-xs mt-0.5" style={{ color: '#B1B1B1' }}>{n.time}</p>
                   </div>
                   {n.unread && <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ background: '#2D60FF' }} />}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                </DropdownMenuItem>
+              </div>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Profile avatar */}
         <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer flex-shrink-0"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import ordersData from '../../data/orders.json';
 
@@ -9,11 +9,35 @@ import Modal, { ModalFooter } from '../../components/Modal';
 import InputField from '../../components/InputField';
 import SelectField from '../../components/SelectField';
 import Avatar from '../../components/Avatar';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
 import { TableFooter } from '../../components/Footer';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 const emptyForm = { customerName: '', status: 'Pending', totalPrice: '', orderDate: '', address: '' };
+
+function buildPageRange(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [];
+  pages.push(1);
+  if (current > 3) pages.push('...');
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('...');
+  pages.push(total);
+  return pages;
+}
 
 export default function Orders() {
   const { searchQuery = '' } = useOutletContext?.() || {};
@@ -21,12 +45,19 @@ export default function Orders() {
   const [activeFilter, setFilter] = useState('All');
   const [showForm, setShowForm]   = useState(false);
   const [form, setForm]           = useState(emptyForm);
+  const [page, setPage]           = useState(1);
 
   const filtered = orders.filter(o => {
     const matchStatus = activeFilter === 'All' || o.status === activeFilter;
     const q = searchQuery.toLowerCase();
     return matchStatus && (!q || o.id.toLowerCase().includes(q) || o.customerName.toLowerCase().includes(q));
   });
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset ke halaman 1 saat filter atau search berubah
+  useEffect(() => { setPage(1); }, [activeFilter, searchQuery]);
 
   const counts = {
     All:       orders.length,
@@ -73,7 +104,7 @@ export default function Orders() {
               {['All', 'Completed', 'Pending', 'Cancelled'].map(f => (
                 <FilterChip key={f} label={f} active={activeFilter === f} onClick={() => setFilter(f)} />
               ))}
-              <Button size="sm" variant="primary" onClick={() => setShowForm(true)}
+              <Button size="sm" variant="default" onClick={() => setShowForm(true)}
                 className="rounded-full text-xs">
                 + Add Order
               </Button>
@@ -97,10 +128,10 @@ export default function Orders() {
                     No orders found
                   </td>
                 </tr>
-              ) : filtered.map((order, i) => (
+              ) : paginated.map((order, i) => (
                 <TableRow key={order.id}>
                   <TableCell>
-                    <span className="text-neutral-teks">{String(i + 1).padStart(2, '0')}.</span>
+                    <span className="text-neutral-teks">{String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(2, '0')}.</span>
                   </TableCell>
                   <TableCell>
                     <Link to={`/orders/${order.id}`} className="text-xs font-semibold text-primary-3 hover:underline font-mono">
@@ -143,7 +174,47 @@ export default function Orders() {
         </div>
 
         {filtered.length > 0 && (
-          <TableFooter showing={filtered.length} total={orders.length} label="orders" />
+          <TableFooter showing={paginated.length} total={filtered.length} label="orders" />
+        )}
+        {totalPages > 1 && (
+          <div className="border-t border-neutral-border px-5 py-3">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={e => { e.preventDefault(); if (page > 1) setPage(page - 1); }}
+                    className={page === 1 ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+
+                {buildPageRange(page, totalPages).map((p, i) =>
+                  p === '...' ? (
+                    <PaginationItem key={`ellipsis-${i}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === page}
+                        onClick={e => { e.preventDefault(); setPage(p); }}>
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={e => { e.preventDefault(); if (page < totalPages) setPage(page + 1); }}
+                    className={page === totalPages ? 'pointer-events-none opacity-40' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
       </div>
 
