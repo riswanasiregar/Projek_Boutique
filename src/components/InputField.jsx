@@ -1,4 +1,6 @@
-export default function InputField({
+import { forwardRef } from 'react';
+
+const InputField = forwardRef(function InputField({
   label,
   name,
   type = 'text',
@@ -12,7 +14,7 @@ export default function InputField({
   onRightIconClick,
   variant = 'main',
   min,
-}) {
+}, ref) {
   const isAuth = variant === 'auth';
 
   const baseClass = isAuth
@@ -52,6 +54,7 @@ export default function InputField({
           </span>
         )}
         <input
+          ref={ref}
           type={type}
           name={name}
           value={value}
@@ -73,4 +76,6 @@ export default function InputField({
       {error && <p className={errorClass}>⚠ {error}</p>}
     </div>
   );
-}
+});
+
+export default InputField;

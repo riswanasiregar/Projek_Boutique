@@ -1,228 +1,335 @@
-import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import PageHeader from '../../components/PageHeader';
+import { useState, useEffect, useRef } from 'react';
+import { useOutletContext, Link } from 'react-router-dom';
+import { LabelBadge, FilterChip } from '../../components/Badge';
+import { StatCard, CardHeader } from '../../components/Card';
+import { TableRow, TableCell } from '../../components/Table';
+import Modal, { ModalFooter } from '../../components/Modal';
+import InputField from '../../components/InputField';
+import SelectField from '../../components/SelectField';
+import { Button } from '../../components/ui/button';
+import Container, { PageSection } from '../../components/Container';
+import { TableFooter } from '../../components/Footer';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
+
+const ITEMS_PER_PAGE = 10;
 
 const initialProducts = [
-  { id: 'PRD-001', name: 'Floral Summer Dress', category: 'Dress', price: 350000, stock: 15 },
-  { id: 'PRD-002', name: 'Classic White Blouse', category: 'Top', price: 180000, stock: 30 },
-  { id: 'PRD-003', name: 'High-Waist Trousers', category: 'Bottom', price: 275000, stock: 20 },
-  { id: 'PRD-004', name: 'Knit Cardigan', category: 'Outerwear', price: 420000, stock: 12 },
-  { id: 'PRD-005', name: 'Silk Midi Skirt', category: 'Bottom', price: 310000, stock: 18 },
-  { id: 'PRD-006', name: 'Linen Blazer', category: 'Outerwear', price: 580000, stock: 8 },
-  { id: 'PRD-007', name: 'Wrap Maxi Dress', category: 'Dress', price: 450000, stock: 10 },
-  { id: 'PRD-008', name: 'Crop Cami Top', category: 'Top', price: 120000, stock: 25 },
-  { id: 'PRD-009', name: 'Wide Leg Jeans', category: 'Bottom', price: 390000, stock: 14 },
-  { id: 'PRD-010', name: 'Trench Coat', category: 'Outerwear', price: 850000, stock: 5 },
+  { id: 'PRD-001', name: 'Floral Summer Dress',  category: 'Dress',     price: 350000, stock: 15 },
+  { id: 'PRD-002', name: 'Classic White Blouse',  category: 'Top',       price: 180000, stock: 30 },
+  { id: 'PRD-003', name: 'High-Waist Trousers',   category: 'Bottom',    price: 275000, stock: 20 },
+  { id: 'PRD-004', name: 'Knit Cardigan',          category: 'Outerwear', price: 420000, stock: 12 },
+  { id: 'PRD-005', name: 'Silk Midi Skirt',        category: 'Bottom',    price: 310000, stock: 18 },
+  { id: 'PRD-006', name: 'Linen Blazer',           category: 'Outerwear', price: 580000, stock: 8  },
+  { id: 'PRD-007', name: 'Wrap Maxi Dress',        category: 'Dress',     price: 450000, stock: 10 },
+  { id: 'PRD-008', name: 'Crop Cami Top',          category: 'Top',       price: 120000, stock: 25 },
+  { id: 'PRD-009', name: 'Wide Leg Jeans',         category: 'Bottom',    price: 390000, stock: 14 },
+  { id: 'PRD-010', name: 'Trench Coat',            category: 'Outerwear', price: 850000, stock: 5  },
 ];
 
-const categoryColors = {
-  Dress:       { bg: '#f7f3e8', color: '#8a6d2f' },
-  Top:         { bg: '#eef4ee', color: '#4a7c59' },
-  Bottom:      { bg: '#f0f4f8', color: '#4a6080' },
-  Outerwear:   { bg: '#f5eeec', color: '#8a5a4a' },
-  Accessories: { bg: '#f0e8f8', color: '#6a4a8a' },
+const CATEGORY_BADGE = {
+  Dress:       { bgClass: 'bg-accent-pink-shadow',   textClass: 'text-secondary'     },
+  Top:         { bgClass: 'bg-accent-green-shadow',  textClass: 'text-accent-green'  },
+  Bottom:      { bgClass: 'bg-accent-blue-shadow',   textClass: 'text-accent-blue'   },
+  Outerwear:   { bgClass: 'bg-accent-yellow-shadow', textClass: 'text-accent-yellow' },
+  Accessories: { bgClass: 'bg-accent-blue-shadow',   textClass: 'text-primary-3'     },
 };
 
-const emptyForm = { name: '', category: 'Dress', price: '', stock: '' };
-const inputStyle = {
-  background: '#f5f0eb', border: '1.5px solid #d4c4b0', color: '#3d2e22',
-  borderRadius: '12px', padding: '10px 16px', fontSize: '14px', width: '100%', outline: 'none',
-};
+const CATEGORIES = ['All', 'Dress', 'Top', 'Bottom', 'Outerwear', 'Accessories'];
+const emptyForm  = { name: '', category: 'Dress', price: '', stock: '' };
+
+function buildPageRange(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [];
+  pages.push(1);
+  if (current > 3) pages.push('...');
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('...');
+  pages.push(total);
+  return pages;
+}
+
+function IconEdit() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  );
+}
+function IconTrash() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
 
 export default function Products() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [products, setProducts] = useState(initialProducts);
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [products, setProducts]     = useState(initialProducts);
+  const [activeFilter, setFilter]   = useState('All');
+  const [showAdd, setShowAdd]       = useState(false);
+  const [showEdit, setShowEdit]     = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [selected, setSelected]     = useState(null);
+  const [form, setForm]             = useState(emptyForm);
+  const [page, setPage]             = useState(1);
 
-  const categories = ['All', 'Dress', 'Top', 'Bottom', 'Outerwear', 'Accessories'];
+  // useRef: auto-focus input Name saat modal Add/Edit dibuka
+  const productNameRef = useRef(null);
 
   const filtered = products.filter(p => {
-    const matchCat = activeCategory === 'All' || p.category === activeCategory;
+    const matchCat = activeFilter === 'All' || p.category === activeFilter;
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-    return matchCat && matchSearch;
+    return matchCat && (!q || p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
   });
 
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
-  function handleSubmit(e) {
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [activeFilter, searchQuery]);
+
+  // Auto-focus input Name saat modal Add atau Edit dibuka
+  useEffect(() => {
+    if (showAdd || showEdit) {
+      const t = setTimeout(() => productNameRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [showAdd, showEdit]);
+
+  const lowStockCount    = products.filter(p => p.stock <= 10).length;
+  const inventoryValue   = products.reduce((s, p) => s + p.price * p.stock, 0);
+  const uniqueCategories = new Set(products.map(p => p.category)).size;
+
+  // Add
+  function handleAddClose()   { setShowAdd(false); setForm(emptyForm); }
+  function handleAddSubmit(e) {
     e.preventDefault();
     const newId = `PRD-${String(products.length + 1).padStart(3, '0')}`;
     setProducts([{ id: newId, name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) }, ...products]);
-    setForm(emptyForm);
-    setShowForm(false);
+    handleAddClose();
   }
 
+  // Edit
+  function openEdit(product) {
+    setSelected(product);
+    setForm({ name: product.name, category: product.category, price: String(product.price), stock: String(product.stock) });
+    setShowEdit(true);
+  }
+  function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); }
+  function handleEditSubmit(e) {
+    e.preventDefault();
+    setProducts(products.map(p => p.id === selected.id
+      ? { ...p, name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) }
+      : p
+    ));
+    handleEditClose();
+  }
+
+  // Delete
+  function openDelete(product)      { setSelected(product); setShowDelete(true); }
+  function handleDeleteClose()      { setShowDelete(false); setSelected(null); }
+  function handleDeleteConfirm()    { setProducts(products.filter(p => p.id !== selected.id)); handleDeleteClose(); }
+
+  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+
+  const summaryCards = [
+    { label: 'Total Products',  value: products.length,
+      iconBg: 'bg-accent-blue-shadow',   iconColor: 'text-accent-blue',
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg> },
+    { label: 'Low Stock',       value: lowStockCount,
+      iconBg: 'bg-accent-pink-shadow',   iconColor: 'text-secondary',
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> },
+    { label: 'Inventory Value', value: `Rp ${(inventoryValue / 1e6).toFixed(1)}M`,
+      iconBg: 'bg-accent-green-shadow',  iconColor: 'text-accent-green',
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { label: 'Categories',      value: uniqueCategories,
+      iconBg: 'bg-accent-yellow-shadow', iconColor: 'text-accent-yellow',
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg> },
+  ];
+
+  const productForm = (
+    <form onSubmit={showEdit ? handleEditSubmit : handleAddSubmit} className="space-y-4">
+      {showEdit && (
+        <div className="px-3 py-2 rounded-xl bg-neutral-bg text-xs text-neutral-teks font-mono">
+          {selected?.id}
+        </div>
+      )}
+      <InputField ref={productNameRef} label="Product Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Floral Summer Dress" required />
+      <InputField label="Price (Rp)"   name="price" value={form.price} onChange={handleChange} placeholder="e.g. 350000" required type="number" />
+      <InputField label="Stock"        name="stock" value={form.stock} onChange={handleChange} placeholder="e.g. 15"     required type="number" />
+      <SelectField label="Category" name="category" value={form.category} onChange={handleChange}
+        options={['Dress', 'Top', 'Bottom', 'Outerwear', 'Accessories']} />
+      <ModalFooter onCancel={showEdit ? handleEditClose : handleAddClose} submitLabel={showEdit ? 'Simpan Perubahan' : 'Save Product'} />
+    </form>
+  );
+
   return (
-    <div>
-      <PageHeader title="Products" breadcrumb={['Dashboard', 'Products']}>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: '#3d2e22', color: '#c9a96e' }}>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Product
-        </button>
-      </PageHeader>
+    <Container>
 
-      {/* Category filter */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {categories.map(cat => {
-          const isActive = activeCategory === cat;
-          const count = cat === 'All' ? products.length : products.filter(p => p.category === cat).length;
-          return (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:shadow-sm"
-              style={isActive
-                ? { background: '#3d2e22', color: '#c9a96e', border: '1.5px solid #3d2e22' }
-                : { background: '#fff', color: '#5a4535', border: '1.5px solid #e2d9ce' }}>
-              {cat}
-              <span className="px-1.5 py-0.5 rounded-md text-xs font-bold"
-                style={isActive
-                  ? { background: 'rgba(201,169,110,0.2)', color: '#c9a96e' }
-                  : { background: '#f0ebe4', color: '#8b7355' }}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-        {searchQuery && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-            style={{ background: '#f0e8d8', color: '#8b7355', border: '1px solid #d4c4b0' }}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            "{searchQuery}" — {filtered.length} result{filtered.length !== 1 ? 's' : ''}
-          </div>
-        )}
-      </div>
+      <PageSection cols={4} gap="sm">
+        {summaryCards.map(card => <StatCard key={card.label} {...card} />)}
+      </PageSection>
 
-      {/* Table */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid #e2d9ce' }}>
+      <div className="rounded-2xl overflow-hidden bg-neutral border border-neutral-border">
+        <CardHeader
+          title="Products Overview"
+          action={
+            <div className="flex items-center gap-2 flex-wrap">
+              {CATEGORIES.map(f => (
+                <FilterChip key={f} label={f} active={activeFilter === f} onClick={() => setFilter(f)} />
+              ))}
+              <Button size="sm" variant="default" onClick={() => setShowAdd(true)} className="rounded-full text-xs">
+                + Add Product
+              </Button>
+            </div>
+          }
+        />
+
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr style={{ background: '#faf7f4', borderBottom: '1px solid #ede5d8' }}>
-                {['Product ID', 'Name', 'Category', 'Price', 'Stock', 'Status'].map((h, i) => (
-                  <th key={h} className={`px-6 py-3.5 text-xs font-semibold uppercase tracking-wider ${i >= 3 ? 'text-right' : 'text-left'}`}
-                    style={{ color: '#9a8878' }}>{h}</th>
+              <tr className="bg-neutral-bg">
+                {['SL No', 'Product ID', 'Name', 'Category', 'Price', 'Stock', 'Status', 'Action'].map(h => (
+                  <th key={h} className="px-5 py-3.5 text-xs font-semibold text-left text-neutral-teks font-inter">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-12 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-3xl">👗</span>
-                    <p className="text-sm font-medium" style={{ color: '#9a8878' }}>No products found</p>
-                  </div>
-                </td></tr>
-              ) : filtered.map((p, i) => {
-                const catStyle = categoryColors[p.category] || { bg: '#f5f0eb', color: '#8b7355' };
-                const lowStock = p.stock <= 5;
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
+                    No products found
+                  </td>
+                </tr>
+              ) : paginated.map((p, i) => {
+                const catBadge = CATEGORY_BADGE[p.category] || { bgClass: 'bg-accent-blue-shadow', textClass: 'text-primary-3' };
+                const lowStock = p.stock <= 10;
                 return (
-                  <tr key={p.id} style={{ borderTop: i > 0 ? '1px solid #f5f0eb' : 'none' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#faf7f4'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <td className="px-6 py-3.5">
-                      <span className="font-mono text-xs px-2 py-0.5 rounded-md"
-                        style={{ background: '#f5f0eb', color: '#8b7355' }}>{p.id}</span>
-                    </td>
-                    <td className="px-6 py-3.5 font-medium" style={{ color: '#3d2e22' }}>{p.name}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                        style={{ background: catStyle.bg, color: catStyle.color }}>{p.category}</span>
-                    </td>
-                    <td className="px-6 py-3.5 text-right font-medium" style={{ color: '#3d2e22' }}>
-                      Rp {p.price.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-3.5 text-right font-bold"
-                      style={{ color: lowStock ? '#8a4a3a' : '#3d2e22' }}>{p.stock}</td>
-                    <td className="px-6 py-3.5 text-right">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                        style={lowStock
-                          ? { background: '#f5eeec', color: '#8a4a3a' }
-                          : { background: '#eef4ee', color: '#4a7c59' }}>
-                        {lowStock ? '⚠ Low Stock' : '✓ In Stock'}
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <span className="text-neutral-teks">{String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(2, '0')}.</span>
+                    </TableCell>
+                    <TableCell>
+                      <Link to={`/products/${p.id}`} className="text-xs font-semibold text-primary-3 hover:underline font-mono">
+                        {p.id}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium text-primary-2">{p.name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <LabelBadge label={p.category} bgClass={catBadge.bgClass} textClass={catBadge.textClass} />
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-semibold text-primary-2">
+                        Rp {p.price.toLocaleString('id-ID')}
                       </span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`text-sm font-bold ${lowStock ? 'text-secondary' : 'text-primary-2'}`}>
+                        {p.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <LabelBadge
+                        label={lowStock ? 'Low Stock' : 'In Stock'}
+                        bgClass={lowStock ? 'bg-accent-pink-shadow' : 'bg-accent-green-shadow'}
+                        textClass={lowStock ? 'text-secondary' : 'text-accent-green'}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openEdit(p)}
+                          className="p-1.5 rounded-lg text-accent-blue hover:bg-accent-blue-shadow transition-colors"
+                          title="Edit produk">
+                          <IconEdit />
+                        </button>
+                        <button onClick={() => openDelete(p)}
+                          className="p-1.5 rounded-lg text-secondary hover:bg-accent-pink-shadow transition-colors"
+                          title="Hapus produk">
+                          <IconTrash />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
             </tbody>
           </table>
         </div>
+
         {filtered.length > 0 && (
-          <div className="px-6 py-3" style={{ borderTop: '1px solid #f5f0eb', background: '#faf7f4' }}>
-            <p className="text-xs" style={{ color: '#9a8878' }}>
-              Showing <span className="font-semibold" style={{ color: '#3d2e22' }}>{filtered.length}</span> of {products.length} products
-            </p>
+          <TableFooter showing={paginated.length} total={filtered.length} label="products" />
+        )}
+        {totalPages > 1 && (
+          <div className="border-t border-neutral-border px-5 py-3">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#"
+                    onClick={e => { e.preventDefault(); if (page > 1) setPage(page - 1); }}
+                    className={page === 1 ? 'pointer-events-none opacity-40' : ''} />
+                </PaginationItem>
+                {buildPageRange(page, totalPages).map((p, i) =>
+                  p === '...' ? (
+                    <PaginationItem key={`ellipsis-${i}`}><PaginationEllipsis /></PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink href="#" isActive={p === page}
+                        onClick={e => { e.preventDefault(); setPage(p); }}>{p}</PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+                <PaginationItem>
+                  <PaginationNext href="#"
+                    onClick={e => { e.preventDefault(); if (page < totalPages) setPage(page + 1); }}
+                    className={page === totalPages ? 'pointer-events-none opacity-40' : ''} />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>
 
-      {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4"
-          style={{ background: 'rgba(61,46,34,0.7)', backdropFilter: 'blur(6px)' }}>
-          <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" style={{ background: '#fff' }}>
-            <div className="px-6 py-4 flex items-center justify-between" style={{ background: '#3d2e22' }}>
-              <div>
-                <h3 className="text-base font-bold" style={{ color: '#f5f0eb' }}>New Product</h3>
-                <p className="text-xs" style={{ color: '#7a6a5a' }}>Add to your fashion catalog</p>
-              </div>
-              <button onClick={() => { setShowForm(false); setForm(emptyForm); }}
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ color: '#c4b5a5' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#4e3c2e'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {[
-                { label: 'Product Name', name: 'name', type: 'text', placeholder: 'e.g. Floral Summer Dress' },
-                { label: 'Price (Rp)', name: 'price', type: 'number', placeholder: 'e.g. 350000' },
-                { label: 'Stock', name: 'stock', type: 'number', placeholder: 'e.g. 15' },
-              ].map(f => (
-                <div key={f.name}>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5a4535' }}>{f.label}</label>
-                  <input type={f.type} name={f.name} value={form[f.name]} onChange={handleChange}
-                    placeholder={f.placeholder} required min={f.type === 'number' ? '0' : undefined}
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#c9a96e'}
-                    onBlur={e => e.target.style.borderColor = '#d4c4b0'} />
-                </div>
-              ))}
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#5a4535' }}>Category</label>
-                <select name="category" value={form.category} onChange={handleChange} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#c9a96e'}
-                  onBlur={e => e.target.style.borderColor = '#d4c4b0'}>
-                  <option>Dress</option><option>Top</option><option>Bottom</option>
-                  <option>Outerwear</option><option>Accessories</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowForm(false); setForm(emptyForm); }}
-                  className="flex-1 font-semibold py-2.5 rounded-xl text-sm"
-                  style={{ border: '1.5px solid #d4c4b0', color: '#5a4535', background: '#f5f0eb' }}>
-                  Cancel
-                </button>
-                <button type="submit"
-                  className="flex-1 font-semibold py-2.5 rounded-xl text-sm transition-opacity hover:opacity-90"
-                  style={{ background: '#3d2e22', color: '#c9a96e' }}>
-                  Save Product
-                </button>
-              </div>
-            </form>
-          </div>
+      {/* Modal Add */}
+      <Modal isOpen={showAdd} onClose={handleAddClose} title="New Product" subtitle="Add to your product catalog">
+        {productForm}
+      </Modal>
+
+      {/* Modal Edit */}
+      <Modal isOpen={showEdit} onClose={handleEditClose} title="Edit Product" subtitle={`Edit data untuk ${selected?.id}`}>
+        {productForm}
+      </Modal>
+
+      {/* Modal Delete */}
+      <Modal isOpen={showDelete} onClose={handleDeleteClose} title="Hapus Produk" subtitle="Tindakan ini tidak dapat dibatalkan">
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-teks font-inter">
+            Apakah Anda yakin ingin menghapus produk{' '}
+            <span className="font-semibold text-primary-2">{selected?.name}</span>{' '}
+            (<span className="font-mono text-xs">{selected?.id}</span>)?
+          </p>
+          <ModalFooter
+            onCancel={handleDeleteClose}
+            onSubmit={handleDeleteConfirm}
+            submitLabel="Hapus"
+            submitVariant="destructive"
+          />
         </div>
-      )}
-    </div>
+      </Modal>
+
+    </Container>
   );
 }

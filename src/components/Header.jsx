@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -13,13 +13,17 @@ const F = { fontFamily: '"Inter", sans-serif' };
 
 const pageTitles = {
   '/': 'Dashboard', '/orders': 'Orders', '/customers': 'Customers',
+  '/products': 'Products', '/support': 'Support', '/feedback': 'Feedback',
+  '/broadcast': 'Broadcast', '/campaigns': 'Campaigns', '/analytics': 'Analytics',
+  '/strategic': 'Strategic', '/users': 'Users',
   '/error-400': 'Error 400', '/error-401': 'Error 401', '/error-403': 'Error 403',
 };
 
 const searchablePages = ['/orders', '/customers'];
 
-export default function Header({ onSearch }) {
+export default function Header({ onSearch, onMenuToggle }) {
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef(null); // useRef: akses langsung ke search input DOM
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname] || 'Page';
   const showSearch = searchablePages.includes(location.pathname);
@@ -42,10 +46,25 @@ export default function Header({ onSearch }) {
     <header className="px-6 py-4 flex items-center justify-between sticky top-0 z-30"
       style={{ background: '#FFFFFF', borderBottom: '1px solid #E6EFF5', ...F }}>
 
-      {/* Left — page title */}
-      <h2 className="text-2xl font-semibold" style={{ color: '#343C6A', ...F }}>
-        {pageTitle}
-      </h2>
+      {/* Left — hamburger (mobile) + page title */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger menu — hanya tampil di mobile */}
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
+            style={{ background: '#F5F7FA' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#E7EDFF'}
+            onMouseLeave={e => e.currentTarget.style.background = '#F5F7FA'}>
+            <svg className="w-5 h-5" fill="none" stroke="#718EBF" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
+        <h2 className="text-xl sm:text-2xl font-semibold" style={{ color: '#343C6A', ...F }}>
+          {pageTitle}
+        </h2>
+      </div>
 
       {/* Right */}
       <div className="flex items-center gap-3">
@@ -59,6 +78,7 @@ export default function Header({ onSearch }) {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
+              ref={searchInputRef}
               type="text" value={search} onChange={handleSearchChange}
               placeholder="Search for something"
               className="pl-11 pr-5 py-2.5 text-sm rounded-full w-64 outline-none transition-all"

@@ -16,8 +16,23 @@ const Forgot   = lazy(() => import('./pages/auth/Forgot'));
 const Dashboard      = lazy(() => import('./pages/main/Dashboard'));
 const Orders         = lazy(() => import('./pages/main/Orders'));
 const OrderDetail    = lazy(() => import('./pages/main/OrderDetail'));
+const Products       = lazy(() => import('./pages/main/Products'));
+const ProductDetail  = lazy(() => import('./pages/main/ProductDetail'));
 const Customers      = lazy(() => import('./pages/main/Customers'));
 const CustomerDetail = lazy(() => import('./pages/main/CustomerDetail'));
+
+// CRM Analytical pages
+const Analytics  = lazy(() => import('./pages/main/Analytics'));
+const Strategic  = lazy(() => import('./pages/main/Strategic'));
+
+// Admin pages
+const Users      = lazy(() => import('./pages/main/Users'));
+
+// CRM Engagement pages
+const Support    = lazy(() => import('./pages/main/Support'));
+const Feedback   = lazy(() => import('./pages/main/Feedback'));
+const Broadcast  = lazy(() => import('./pages/main/Broadcast'));
+const Campaigns  = lazy(() => import('./pages/main/Campaigns'));
 
 // Error pages
 const Error400 = lazy(() => import('./pages/main/Error400'));
@@ -39,8 +54,17 @@ export default function App() {
             <Route path="/"                element={<Dashboard />} />
             <Route path="/orders"          element={<Orders />} />
             <Route path="/orders/:id"      element={<OrderDetail />} />
+            <Route path="/products"        element={<Products />} />
+            <Route path="/products/:id"    element={<ProductDetail />} />
             <Route path="/customers"       element={<Customers />} />
             <Route path="/customers/:id"   element={<CustomerDetail />} />
+            <Route path="/support"         element={<Support />} />
+            <Route path="/feedback"        element={<Feedback />} />
+            <Route path="/broadcast"       element={<Broadcast />} />
+            <Route path="/campaigns"       element={<Campaigns />} />
+            <Route path="/analytics"       element={<Analytics />} />
+            <Route path="/strategic"       element={<Strategic />} />
+            <Route path="/users"           element={<Users />} />
             <Route path="/error-400"       element={<Error400 />} />
             <Route path="/error-401"       element={<Error401 />} />
             <Route path="/error-403"       element={<Error403 />} />

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { removeToken } from '../utils/auth';
+import { signOut } from '../utils/auth';
 
 const F = { fontFamily: '"Inter", sans-serif' };
 
@@ -34,6 +34,15 @@ const mainMenu = [
     ),
   },
   {
+    to: '/products', label: 'Products',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </svg>
+    ),
+  },
+  {
     to: '/customers', label: 'Customers',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,11 +53,51 @@ const mainMenu = [
   },
 ];
 
-function NavItem({ item }) {
+const engagementMenu = [
+  {
+    to: '/support', label: 'Support',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/feedback', label: 'Feedback',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/broadcast', label: 'Broadcast',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/campaigns', label: 'Campaigns',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+      </svg>
+    ),
+  },
+];
+
+function NavItem({ item, onClose }) {
   return (
     <NavLink
       to={item.to}
       end={item.end}
+      onClick={onClose}
       className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all relative"
       style={({ isActive }) =>
         isActive
@@ -80,16 +129,19 @@ function NavItem({ item }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
-  function handleLogout() { removeToken(); navigate('/login'); }
+  async function handleLogout() {
+    await signOut();
+    navigate("/login");
+  }
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col"
+    <aside className="w-64 h-full flex flex-col"
       style={{ background: C.bg, borderRight: `1px solid ${C.border}`, ...F }}>
 
-      {/* Logo */}
-      <div className="px-6 py-6" style={{ borderBottom: `1px solid ${C.border}` }}>
+      {/* Logo + mobile close button */}
+      <div className="px-6 py-6 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: '#E7EDFF' }}>
@@ -102,11 +154,58 @@ export default function Sidebar() {
             Boutique
           </span>
         </div>
+        {/* Tombol close — hanya tampil di mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+            style={{ color: C.muted }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F5F7FA'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-6 overflow-y-auto space-y-1">
-        {mainMenu.map(item => <NavItem key={item.to} item={item} />)}
+        {mainMenu.map(item => <NavItem key={item.to} item={item} onClose={onClose} />)}
+        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider font-inter"
+          style={{ color: C.muted }}>CRM Engagement</p>
+        {engagementMenu.map(item => <NavItem key={item.to} item={item} onClose={onClose} />)}
+        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider font-inter"
+          style={{ color: C.muted }}>CRM Analytical</p>
+        <NavItem item={{
+          to: '/analytics', label: 'Analytics',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          ),
+        }} onClose={onClose}/>
+        <NavItem item={{
+          to: '/strategic', label: 'Strategic',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          ),
+        }} onClose={onClose}/>
+        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider font-inter"
+          style={{ color: C.muted }}>Admin</p>
+        <NavItem item={{
+          to: '/users', label: 'Users',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ),
+        }} onClose={onClose}/>
       </nav>
 
       {/* User + logout */}
