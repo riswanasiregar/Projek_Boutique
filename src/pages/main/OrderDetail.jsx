@@ -63,8 +63,8 @@ export default function OrderDetail() {
         } else {
           // Fallback: dummy items if no order_items yet
           setItems([
-            { name: 'Boutique Item A', qty: 1, price: 85000 },
-            { name: 'Boutique Item B', qty: 1, price: 65000 },
+            { name: 'Ris.Style Item A', qty: 1, price: 85000 },
+            { name: 'Ris.Style Item B', qty: 1, price: 65000 },
           ]);
         }
       }
@@ -235,7 +235,7 @@ export default function OrderDetail() {
               <div>
                 <p className="text-sm font-semibold text-primary-2 font-inter">{customer?.name || '-'}</p>
                 <p className="text-xs mt-1 leading-relaxed text-neutral-teks font-inter">
-                  {order.address || `Jl. Boutique No. ${order.id.replace('ORD-', '')}, Jakarta Pusat 10310`}
+                  {order.address || `Jl. Ris.Style No. ${order.id.replace('ORD-', '')}, Jakarta Pusat 10310`}
                 </p>
               </div>
             </div>

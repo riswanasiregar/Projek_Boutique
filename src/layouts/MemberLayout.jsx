@@ -6,6 +6,7 @@ import Loading from '../components/Loading';
 
 const NAV_ITEMS = [
   { label: 'Beranda',      href: '#home' },
+  { label: 'Katalog',      href: '#products' },
   { label: 'Membership',   href: '#membership' },
   { label: 'Poin Saya',    href: '#points' },
   { label: 'Reward',       href: '#rewards' },
@@ -41,8 +42,12 @@ export default function MemberLayout() {
 
   function scrollTo(href) {
     setMenuOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    // Dispatch custom event for tab switching (e.g. Katalog → shop tab)
+    window.dispatchEvent(new CustomEvent('memberNav', { detail: href }));
+    setTimeout(() => {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }
 
   return (
@@ -54,7 +59,7 @@ export default function MemberLayout() {
 
           {/* Logo */}
           <Link to="/member" className="flex items-center">
-            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 250, height: 84 }} />
+            <img src="/img/logoboutique.svg" alt="Ris.Style" className="object-contain" style={{ width: 250, height: 84 }} />
           </Link>
 
           {/* Desktop nav */}
@@ -155,7 +160,7 @@ export default function MemberLayout() {
       {/* ── Footer ── */}
       <footer className="py-6 text-center" style={{ background: '#343C6A' }}>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          &copy; {new Date().getFullYear()} Boutique Member. All rights reserved.
+          &copy; {new Date().getFullYear()} Ris.Style. All rights reserved.
         </p>
       </footer>
     </div>

@@ -29,7 +29,7 @@ export default function GuestLayout() {
 
           {/* Logo */}
           <Link to="/guest" className="flex items-center">
-            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 250, height: 84 }} />
+            <img src="/img/logoboutique.svg" alt="Ris.Style" className="object-contain" style={{ width: 250, height: 84 }} />
           </Link>
 
           {/* Desktop nav links */}
@@ -155,7 +155,7 @@ export default function GuestLayout() {
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  info@boutique.com
+                  info@risstyle.com
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ export default function GuestLayout() {
           {/* Divider + copyright */}
           <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              &copy; {new Date().getFullYear()} Boutique. All rights reserved.
+              &copy; {new Date().getFullYear()} Ris.Style. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               {/* Social icons */}

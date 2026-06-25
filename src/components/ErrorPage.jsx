@@ -294,7 +294,7 @@ export default function ErrorPage({ code, title, description }) {
             className="text-xs font-semibold tracking-widest uppercase"
             style={{ color: '#8b7355' }}
           >
-            Boutique · {config.label}
+            Ris.Style · {config.label}
           </span>
         </div>
 

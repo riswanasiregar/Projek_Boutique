@@ -3,7 +3,7 @@ export default function Footer({ text }) {
   return (
     <footer className="px-6 py-4 border-t border-neutral-border bg-neutral font-inter">
       <p className="text-xs text-neutral-teks text-center">
-        {text || `© ${year} Boutique Fashion Admin. All rights reserved.`}
+        {text || `© ${year} Ris.Style Admin. All rights reserved.`}
       </p>
     </footer>
   );

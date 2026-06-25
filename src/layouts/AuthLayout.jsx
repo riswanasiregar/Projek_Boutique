@@ -18,7 +18,7 @@ export default function AuthLayout() {
         {/* Kiri — putih + gambar */}
         <div className="hidden lg:flex lg:w-[48%] flex-col items-center justify-between p-8 bg-neutral">
           <div className="w-full">
-            <span className="text-xl font-bold text-primary-3 font-jakarta">Boutique</span>
+            <span className="text-xl font-bold text-primary-3 font-jakarta">Ris.Style</span>
           </div>
           <div className="flex-1 flex items-center justify-center py-4">
             <img src={config.img} alt="Illustration"
@@ -26,7 +26,7 @@ export default function AuthLayout() {
           </div>
           <div className="text-center">
             <p className="text-base text-primary-2 font-jakarta">
-              Welcome to <span className="font-bold text-primary-3">Boutique</span>
+              Welcome to <span className="font-bold text-primary-3">Ris.Style</span>
             </p>
           </div>
         </div>

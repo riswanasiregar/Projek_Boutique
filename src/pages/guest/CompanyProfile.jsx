@@ -87,7 +87,7 @@ export default function CompanyProfile() {
         <div className="relative max-w-7xl mx-auto px-6 flex flex-col items-center justify-center text-center" style={{ minHeight: '600px' }}>
           <span className="inline-block px-5 py-2 rounded-full text-sm font-semibold mb-6"
             style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-            Welcome to Boutique
+            Welcome to Ris.Style
           </span>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
             Fashion Elegance<br />
@@ -138,7 +138,7 @@ export default function CompanyProfile() {
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeading
             badge="About Us"
-            title="Cerita di Balik Boutique"
+            title="Cerita di Balik Ris.Style"
             subtitle="Menghadirkan fashion berkualitas tinggi dengan sentuhan elegan untuk wanita modern"
           />
 
@@ -147,7 +147,7 @@ export default function CompanyProfile() {
             <div className="rounded-3xl overflow-hidden" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1)' }}>
               <img
                 src="/img/backround.png"
-                alt="Boutique Store"
+                alt="Ris.Style Store"
                 className="w-full h-80 object-cover"
                 onError={e => { e.currentTarget.style.display = 'none'; }}
               />
@@ -157,7 +157,7 @@ export default function CompanyProfile() {
             <div>
               <h3 className="text-2xl font-bold mb-4" style={{ color: '#343C6A' }}>Kualitas Premium, Desain Eksklusif</h3>
               <p className="text-base leading-relaxed mb-6" style={{ color: '#718EBF' }}>
-                Boutique didirikan dengan visi untuk menyediakan koleksi fashion berkualitas tinggi yang menggabungkan keanggunan klasik dengan tren modern. Setiap produk kami dipilih dengan cermat untuk memastikan kualitas bahan, jahitan, dan desain terbaik.
+                Ris.Style didirikan dengan visi untuk menyediakan koleksi fashion berkualitas tinggi yang menggabungkan keanggunan klasik dengan tren modern. Setiap produk kami dipilih dengan cermat untuk memastikan kualitas bahan, jahitan, dan desain terbaik.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -257,7 +257,7 @@ export default function CompanyProfile() {
           <SectionHeading
             badge="Testimonials"
             title="Apa Kata Mereka?"
-            subtitle="Review jujur dari pelanggan setia Boutique"
+            subtitle="Review jujur dari pelanggan setia Ris.Style"
           />
 
           {loadingFeedbacks ? (
@@ -299,7 +299,7 @@ export default function CompanyProfile() {
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeading
             badge="Membership"
-            title="Program Loyalitas Boutique"
+            title="Program Loyalitas Ris.Style"
             subtitle="Dapatkan poin dari setiap transaksi dan nikmati benefit eksklusif di setiap tier membership"
           />
 
@@ -415,7 +415,7 @@ export default function CompanyProfile() {
                   { poin: '250 poin',  reward: 'Voucher Rp50.000',                  icon: '🎟️' },
                   { poin: '500 poin',  reward: 'Gratis ongkir 5 kali',              icon: '📦' },
                   { poin: '750 poin',  reward: 'Diskon tambahan 10% sekali pakai',  icon: '🏷️' },
-                  { poin: '1.000 poin', reward: 'Gift box eksklusif boutique',      icon: '🎁' },
+                  { poin: '1.000 poin', reward: 'Gift box eksklusif Ris.Style',      icon: '🎁' },
                   { poin: '1.500 poin', reward: 'Voucher Rp250.000',                icon: '💳' },
                 ].map(r => (
                   <div key={r.poin} className="flex items-center gap-3 py-3 px-4 rounded-xl" style={{ background: '#fff' }}>
@@ -438,7 +438,7 @@ export default function CompanyProfile() {
           <SectionHeading
             badge="FAQ"
             title="Pertanyaan yang Sering Diajukan"
-            subtitle="Temukan jawaban untuk pertanyaan umum seputar pemesanan, pembayaran, dan membership Boutique"
+            subtitle="Temukan jawaban untuk pertanyaan umum seputar pemesanan, pembayaran, dan membership Ris.Style"
           />
 
           <div className="space-y-3">
@@ -468,7 +468,7 @@ export default function CompanyProfile() {
                 a: 'Kami berusaha menampilkan foto produk seakurat mungkin. Namun, perbedaan warna dapat terjadi karena pencahayaan atau pengaturan layar perangkat masing-masing.',
               },
               {
-                q: 'Bagaimana cara menjadi member Boutique?',
+                q: 'Bagaimana cara menjadi member Ris.Style?',
                 a: 'Pelanggan akan otomatis menjadi Bronze Member setelah mendaftar akun dan melakukan pembelian pertama. Poin akan terkumpul dari setiap transaksi untuk meningkatkan level keanggotaan.',
               },
               {
@@ -481,7 +481,7 @@ export default function CompanyProfile() {
               },
               {
                 q: 'Bagaimana cara menghubungi customer service?',
-                a: 'Anda dapat menghubungi kami melalui:\n\u2022 WhatsApp: +62 xxx-xxxx-xxxx\n\u2022 Instagram: @boutique\n\u2022 Email: hello@boutique.com',
+                a: 'Anda dapat menghubungi kami melalui:\n\u2022 WhatsApp: +62 xxx-xxxx-xxxx\n\u2022 Instagram: @ris.style\n\u2022 Email: hello@risstyle.com',
               },
               {
                 q: 'Apakah tersedia layanan pre-order?',

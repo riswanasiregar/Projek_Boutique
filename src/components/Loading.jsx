@@ -5,7 +5,7 @@ export default function Loading() {
       <div className="flex flex-col items-center gap-5">
         {/* Boutique logo mark */}
         <div className="relative">
-          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 400, height: 134 }} />
+          <img src="/img/logoboutique.svg" alt="Ris.Style" className="object-contain" style={{ width: 400, height: 134 }} />
           {/* Spinning ring */}
           <div className="absolute -inset-2 rounded-2xl border-2 border-transparent animate-spin"
             style={{ borderTopColor: '#2D60FF', borderRightColor: '#2D60FF33' }} />
@@ -14,7 +14,7 @@ export default function Loading() {
         {/* Brand name */}
         <div className="text-center">
           <p className="text-base font-bold" style={{ color: '#343C6A' }}>
-            Boutique<span style={{ color: '#2D60FF' }}>.</span>
+            Ris.Style<span style={{ color: '#2D60FF' }}>.</span>
           </p>
           <p className="text-xs mt-0.5" style={{ color: '#718EBF' }}>Loading...</p>
         </div>

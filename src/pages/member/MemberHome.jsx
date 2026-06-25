@@ -56,6 +56,11 @@ export default function MemberHome() {
   const [myOrders, setMyOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('shop'); // 'shop' | 'orders'
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [showReview, setShowReview] = useState(false);  // review modal
+  const [reviewTarget, setReviewTarget] = useState(null); // { order, items }
+  const [reviewRatings, setReviewRatings] = useState({}); // { product_id: rating }
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewedOrders, setReviewedOrders] = useState([]); // order_ids that already reviewed
 
   /* ── Derived ── */
   const points = user?.points ?? 0;
@@ -63,6 +68,15 @@ export default function MemberHome() {
   const cartTotal = cart.reduce((s, c) => s + c.product.price * c.qty, 0);
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
   const earnedPoints = Math.floor(cartTotal / 10000);
+
+  /* ── Listen for nav events to switch tab ── */
+  useEffect(() => {
+    function handleNav(e) {
+      if (e.detail === '#products') setActiveTab('shop');
+    }
+    window.addEventListener('memberNav', handleNav);
+    return () => window.removeEventListener('memberNav', handleNav);
+  }, []);
 
   /* ── Fetch products ── */
   useEffect(() => {
@@ -92,6 +106,86 @@ export default function MemberHome() {
       if (data) setMyOrders(data);
     })();
   }, [user?.email]);
+
+  /* ── Fetch reviewed order IDs ── */
+  useEffect(() => {
+    if (!user?.email) return;
+    (async () => {
+      const { data: cust } = await supabase.from('customers').select('id').eq('email', user.email).maybeSingle();
+      if (!cust) return;
+      const { data } = await supabase.from('feedbacks').select('comment').eq('customer_id', cust.id);
+      // Track reviewed orders by checking feedbacks with order reference in comment
+      if (data) {
+        const orderIds = data
+          .filter(f => f.comment && f.comment.startsWith('[Order:'))
+          .map(f => f.comment.match(/\[Order:(ORD-\d+)\]/)?.[1])
+          .filter(Boolean);
+        setReviewedOrders([...new Set(orderIds)]);
+      }
+    })();
+  }, [user?.email]);
+
+  /* ── Review functions ── */
+  function openReview(order) {
+    setReviewTarget(order);
+    const ratings = {};
+    (order.order_items || []).forEach(item => { ratings[item.product_id] = 5; });
+    setReviewRatings(ratings);
+    setReviewComment('');
+    setShowReview(true);
+  }
+
+  async function submitReview() {
+    if (!reviewTarget) return;
+    const items = reviewTarget.order_items || [];
+    const allRated = items.every(it => reviewRatings[it.product_id]);
+    if (!allRated) { alert('Berikan rating untuk semua produk'); return; }
+    setProcessing(true);
+    try {
+      // Find customer_id
+      const { data: cust } = await supabase.from('customers').select('id, name').eq('email', user.email).maybeSingle();
+      if (!cust) { alert('Data pelanggan tidak ditemukan'); return; }
+
+      // Calculate average rating
+      const ratings = items.map(it => reviewRatings[it.product_id] || 5);
+      const avgRating = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
+
+      // Generate feedback ID
+      const { data: lastFb } = await supabase.from('feedbacks').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+      const lastNum = lastFb ? parseInt(lastFb.id.replace('FB-', ''), 10) : 0;
+      const newFbId = `FB-${String(lastNum + 1).padStart(3, '0')}`;
+
+      // Build comment with product names and order reference
+      const productReviews = items.map(it => `${it.product_name}: ${'★'.repeat(reviewRatings[it.product_id] || 5)}${'☆'.repeat(5 - (reviewRatings[it.product_id] || 5))}`).join('\n');
+      const fullComment = `[Order:${reviewTarget.id}]\n${productReviews}${reviewComment.trim() ? '\n\nKomentar: ' + reviewComment.trim() : ''}`;
+
+      // Insert into feedbacks table
+      const { error } = await supabase.from('feedbacks').insert({
+        id: newFbId,
+        customer_id: cust.id,
+        customer_name: cust.name || user.name || user.email?.split('@')[0],
+        rating: avgRating,
+        comment: fullComment,
+        status: 'Pending',
+      });
+      if (error) { alert('Gagal mengirim review: ' + error.message); return; }
+
+      // Add 20 bonus points for review
+      const newPoints = points + 20;
+      let newTier = tier;
+      if (newPoints >= 1500) newTier = 'Gold';
+      else if (newPoints >= 750) newTier = 'Silver';
+      await supabase.from('profiles').update({ points: newPoints, tier: newTier }).eq('id', user.id);
+
+      setReviewedOrders(prev => [...prev, reviewTarget.id]);
+      setShowReview(false);
+      alert('Review berhasil dikirim! +20 poin');
+    } catch (err) {
+      alert('Terjadi kesalahan: ' + err.message);
+    } finally {
+      setProcessing(false);
+    }
+  }
 
   /* ── Cart functions ── */
   function addToCart(product) {
@@ -354,6 +448,22 @@ export default function MemberHome() {
                       <span className="text-xs" style={{ color: '#718EBF' }}>Total</span>
                       <span className="text-sm font-bold" style={{ color: '#2D60FF' }}>{formatRp(order.total_price)}</span>
                     </div>
+                    {/* Review button for completed orders */}
+                    {order.status === 'Completed' && (
+                      <div className="mt-3 pt-3" style={{ borderTop: '1px solid #E6EFF5' }}>
+                        {reviewedOrders.includes(order.id) ? (
+                          <p className="text-xs font-semibold" style={{ color: '#06A77D' }}>✅ Sudah direview (+20 poin)</p>
+                        ) : (
+                          <button onClick={() => openReview(order)}
+                            className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+                            style={{ background: '#E7EDFF', color: '#2D60FF' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#2D60FF'; e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#E7EDFF'; e.currentTarget.style.color = '#2D60FF'; }}>
+                            ⭐ Tulis Review (+20 poin)
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -601,6 +711,57 @@ export default function MemberHome() {
               className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: '#2D60FF', color: '#fff' }}>
               Lihat Pesanan
             </button>
+          </div>
+        </div>
+      )}
+      {/* ════════ REVIEW MODAL ════════ */}
+      {showReview && reviewTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => !processing && setShowReview(false)}>
+          <div className="w-full max-w-md rounded-3xl overflow-hidden mx-4" style={{ background: '#fff' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid #E6EFF5' }}>
+              <h3 className="text-lg font-bold" style={{ color: '#343C6A' }}>⭐ Tulis Review</h3>
+              <p className="text-xs" style={{ color: '#718EBF' }}>Order {reviewTarget.id}</p>
+            </div>
+            <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Rate each product */}
+              {(reviewTarget.order_items || []).map(item => (
+                <div key={item.product_id} className="rounded-xl p-4" style={{ background: '#F5F7FA' }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#343C6A' }}>{item.product_name}</p>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button key={star} onClick={() => setReviewRatings(prev => ({ ...prev, [item.product_id]: star }))}
+                        className="text-2xl transition-transform hover:scale-110"
+                        style={{ color: star <= (reviewRatings[item.product_id] || 0) ? '#FFBB38' : '#E6EFF5' }}>
+                        ★
+                      </button>
+                    ))}
+                    <span className="ml-2 text-xs font-semibold" style={{ color: '#718EBF' }}>
+                      {(reviewRatings[item.product_id] || 0)}/5
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {/* Comment */}
+              <div>
+                <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#343C6A' }}>Komentar (opsional)</label>
+                <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3}
+                  placeholder="Ceritakan pengalaman belanja kamu..."
+                  className="w-full px-4 py-3 rounded-xl text-sm resize-none outline-none"
+                  style={{ border: '1px solid #E6EFF5', background: '#F5F7FA' }} />
+              </div>
+              <p className="text-xs" style={{ color: '#06A77D' }}>🎁 Bonus +20 poin setelah review dikirim!</p>
+            </div>
+            <div className="px-6 py-4 flex gap-3" style={{ borderTop: '1px solid #E6EFF5' }}>
+              <button onClick={() => setShowReview(false)} disabled={processing}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: '#F5F7FA', color: '#718EBF' }}>Batal</button>
+              <button onClick={submitReview} disabled={processing}
+                className="flex-1 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                style={{ background: '#2D60FF', color: '#fff' }}>
+                {processing ? <><LoaderCircleIcon className="inline animate-spin w-4 h-4 mr-2" />Mengirim...</> : 'Kirim Review'}
+              </button>
+            </div>
           </div>
         </div>
       )}
