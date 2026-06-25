@@ -48,7 +48,7 @@ export function removeToken() {
  * Kolom tabel: id, full_name, phone, role, avatar_url, created_at, updated_at.
  * Email diambil dari auth session (tidak ada kolom email di profiles).
  * Fallback ke auth user_metadata jika query gagal.
- * Return: { id, name, email, role, avatar_url } atau null jika tidak login.
+ * Return: { id, name, email, role, avatar_url, points, tier } atau null jika tidak login.
  */
 export async function getCurrentUser() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -60,7 +60,7 @@ export async function getCurrentUser() {
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, avatar_url')
+      .select('id, full_name, role, avatar_url, points, tier')
       .eq('id', id)
       .maybeSingle();
 
@@ -71,6 +71,8 @@ export async function getCurrentUser() {
         email:      email || '',
         role:       profile.role       || 'user',
         avatar_url: profile.avatar_url || null,
+        points:     profile.points     ?? 0,
+        tier:       profile.tier       || 'Bronze',
       };
     }
   } catch {
@@ -84,6 +86,8 @@ export async function getCurrentUser() {
     email:     email || '',
     role:      'user',
     avatar_url: null,
+    points:    0,
+    tier:      'Bronze',
   };
 }
 

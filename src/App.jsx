@@ -6,10 +6,14 @@ import Loading from './components/Loading';
 const GuestLayout    = lazy(() => import('./layouts/GuestLayout'));
 const AuthLayout     = lazy(() => import('./layouts/AuthLayout'));
 const MainLayout     = lazy(() => import('./layouts/MainLayout'));
+const MemberLayout   = lazy(() => import('./layouts/MemberLayout'));
 const ProtectedRoute = lazy(() => import('./layouts/ProtectedRoute'));
 
 // Guest pages
 const CompanyProfile = lazy(() => import('./pages/guest/CompanyProfile'));
+
+// Member pages
+const MemberHome = lazy(() => import('./pages/member/MemberHome'));
 
 // Auth pages
 const Login    = lazy(() => import('./pages/auth/Login'));
@@ -55,6 +59,10 @@ export default function App() {
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot"   element={<Forgot />} />
+        </Route>
+        {/* Member routes — auth + role check handled by MemberLayout */}
+        <Route element={<MemberLayout />}>
+          <Route path="/member" element={<MemberHome />} />
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>

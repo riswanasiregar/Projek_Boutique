@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BsEnvelope, BsLock, BsEye, BsEyeSlash } from 'react-icons/bs';
 import { AlertCircleIcon, LoaderCircleIcon } from 'lucide-react';
 
-import { signIn } from '../../utils/auth';
+import { signIn, getCurrentUser } from '../../utils/auth';
 import InputField from '../../components/InputField';
 import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription } from '../../components/ui/alert';
@@ -46,7 +46,13 @@ export default function Login() {
         return;
       }
 
-      navigate('/');
+      // Cek role untuk redirect
+      const user = await getCurrentUser();
+      if (user?.role === 'member') {
+        navigate('/member');
+      } else {
+        navigate('/');
+      }
     } finally {
       setLoading(false);
     }
