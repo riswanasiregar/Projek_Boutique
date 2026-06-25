@@ -29,7 +29,7 @@ export default function GuestLayout() {
 
           {/* Logo */}
           <Link to="/guest" className="flex items-center">
-            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 120, height: 50 }} />
+            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 250, height: 84 }} />
           </Link>
 
           {/* Desktop nav links */}
@@ -122,9 +122,6 @@ export default function GuestLayout() {
 
             {/* Brand */}
             <div>
-              <div className="mb-4">
-                <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 160, height: 70 }} />
-              </div>
               <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Temukan koleksi fashion terbaik dengan kualitas premium. Gaya elegan untuk setiap kesempatan.
               </p>

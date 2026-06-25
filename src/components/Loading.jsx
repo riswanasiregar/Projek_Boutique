@@ -5,7 +5,7 @@ export default function Loading() {
       <div className="flex flex-col items-center gap-5">
         {/* Boutique logo mark */}
         <div className="relative">
-          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 180, height: 80 }} />
+          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 400, height: 134 }} />
           {/* Spinning ring */}
           <div className="absolute -inset-2 rounded-2xl border-2 border-transparent animate-spin"
             style={{ borderTopColor: '#2D60FF', borderRightColor: '#2D60FF33' }} />

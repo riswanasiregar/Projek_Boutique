@@ -174,7 +174,7 @@ export default function Sidebar({ onClose }) {
       {/* Logo + mobile close button */}
       <div className="px-6 py-6 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
         <div>
-          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 120, height: 60 }} />
+          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 220, height: 74 }} />
         </div>
         {/* Tombol close — hanya tampil di mobile */}
         {onClose && (

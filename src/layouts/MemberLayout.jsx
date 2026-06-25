@@ -54,7 +54,7 @@ export default function MemberLayout() {
 
           {/* Logo */}
           <Link to="/member" className="flex items-center">
-            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 110, height: 45 }} />
+            <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 250, height: 84 }} />
           </Link>
 
           {/* Desktop nav */}
