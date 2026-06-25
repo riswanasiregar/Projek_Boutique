@@ -79,7 +79,7 @@ export default function Users() {
       const { data, error } = await supabase.auth.signUp({
         email:    form.email.trim().toLowerCase(),
         password: form.password,
-        options:  { data: { name: form.name.trim() || '' } },
+        options:  { data: { full_name: form.name.trim() || '' } },
       });
 
       if (error) { setFormError(error.message); return; }
@@ -102,7 +102,7 @@ export default function Users() {
   /* ── Edit: update role & nama di profiles ── */
   function openEdit(u) {
     setSelected(u);
-    setForm({ name: u.name || '', email: u.email || '', role: u.role || 'user' });
+    setForm({ name: u.full_name || '', email: u.email || '', role: u.role || 'user' });
     setFormError('');
     setShowEdit(true);
   }
@@ -113,7 +113,7 @@ export default function Users() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update({ name: form.name.trim() || null, role: form.role })
+        .update({ full_name: form.name.trim() || null, role: form.role })
         .eq('id', selected.id)
         .select();
 
@@ -211,8 +211,8 @@ export default function Users() {
                   <TableCell><span className="text-neutral-teks">{String(i + 1).padStart(2, '0')}.</span></TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Avatar name={u.name || u.email} />
-                      <span className="text-sm font-medium text-primary-2">{u.name || '—'}</span>
+                      <Avatar name={u.full_name || u.email} />
+                      <span className="text-sm font-medium text-primary-2">{u.full_name || '—'}</span>
                     </div>
                   </TableCell>
                   <TableCell><span className="text-sm text-neutral-teks">{u.email}</span></TableCell>

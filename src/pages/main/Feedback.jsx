@@ -1,13 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import { LabelBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
-import Modal, { ModalFooter } from '../../components/Modal';
-import InputField from '../../components/InputField';
-import SelectField from '../../components/SelectField';
-import TextArea from '../../components/TextArea';
-import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
 import { TableFooter } from '../../components/Footer';
 
@@ -16,19 +12,6 @@ const STATUS_BADGE = {
   Pending:   { bgClass: 'bg-accent-yellow-shadow', textClass: 'text-accent-yellow' },
   Hidden:    { bgClass: 'bg-accent-blue-shadow',   textClass: 'text-accent-blue'   },
 };
-
-const initialFeedbacks = [
-  { id: 'REV-001', customerName: 'Andi Saputra',    rating: 5, comment: 'Produk sangat bagus dan pengiriman cepat! Puas banget.',   status: 'Published', createdAt: '2026-02-10T10:00:00' },
-  { id: 'REV-002', customerName: 'Dewi Lestari',    rating: 4, comment: 'Kualitas sesuai harga. Kemasan rapi dan aman.',           status: 'Published', createdAt: '2026-02-12T14:30:00' },
-  { id: 'REV-003', customerName: 'Budi Santoso',    rating: 2, comment: 'Warna sedikit berbeda dari foto, tapi masih oke.',        status: 'Pending',   createdAt: '2026-02-15T09:00:00' },
-  { id: 'REV-004', customerName: 'Hana Pertiwi',    rating: 5, comment: 'Seller terpercaya! Sudah beli berkali-kali, selalu puas.', status: 'Published', createdAt: '2026-02-18T11:00:00' },
-  { id: 'REV-005', customerName: 'Irfan Maulana',   rating: 3, comment: 'Ukuran sedikit lebih kecil dari ekspektasi.',            status: 'Published', createdAt: '2026-02-20T16:00:00' },
-  { id: 'REV-006', customerName: 'Kartika Sari',    rating: 1, comment: 'Kecewa dengan kualitas jahitan, ada yang lepas.',        status: 'Hidden',    createdAt: '2026-02-22T08:30:00' },
-  { id: 'REV-007', customerName: 'Nanda Putra',     rating: 5, comment: 'Sangat memuaskan! Bahan premium dan nyaman dipakai.',    status: 'Published', createdAt: '2026-02-25T12:00:00' },
-  { id: 'REV-008', customerName: 'Vina Oktavia',    rating: 4, comment: 'Pelayanan ramah dan produk sesuai deskripsi.',           status: 'Pending',   createdAt: '2026-03-01T10:00:00' },
-];
-
-const emptyForm = { customerName: '', rating: '5', comment: '', status: 'Published' };
 
 function Stars({ rating }) {
   return (
@@ -39,28 +22,31 @@ function Stars({ rating }) {
     </div>
   );
 }
-
-function IconEdit()  { return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>; }
-function IconTrash() { return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>; }
-
 function formatDate(iso) { return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }); }
 
 export default function Feedback() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [feedbacks, setFeedbacks]     = useState(initialFeedbacks);
+  const [feedbacks, setFeedbacks]     = useState([]);
+  const [loading, setLoading]         = useState(true);
   const [ratingFilter, setRating]     = useState('All');
   const [statusFilter, setStatus]     = useState('All');
-  const [showAdd, setShowAdd]         = useState(false);
-  const [showEdit, setShowEdit]       = useState(false);
-  const [showDelete, setShowDelete]   = useState(false);
-  const [selected, setSelected]       = useState(null);
-  const [form, setForm]               = useState(emptyForm);
+
+  async function fetchFeedbacks() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setFeedbacks(data);
+    setLoading(false);
+  }
+  useEffect(() => { fetchFeedbacks(); }, []);
 
   const filtered = feedbacks.filter(f => {
     const matchRating = ratingFilter === 'All' || f.rating === Number(ratingFilter.replace('★',''));
     const matchStatus = statusFilter === 'All' || f.status === statusFilter;
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || f.customerName.toLowerCase().includes(q) || f.comment.toLowerCase().includes(q);
+    const matchSearch = !q || f.customer_name.toLowerCase().includes(q) || (f.comment || '').toLowerCase().includes(q);
     return matchRating && matchStatus && matchSearch;
   });
 
@@ -75,28 +61,6 @@ export default function Feedback() {
     count: feedbacks.filter(f => f.rating === r).length,
     pct: feedbacks.length ? Math.round(feedbacks.filter(f=>f.rating===r).length / feedbacks.length * 100) : 0,
   }));
-
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
-
-  function handleAddClose()   { setShowAdd(false); setForm(emptyForm); }
-  function handleAddSubmit(e) {
-    e.preventDefault();
-    const newId = `REV-${String(feedbacks.length + 1).padStart(3,'0')}`;
-    setFeedbacks([{ id: newId, customerName: form.customerName, rating: Number(form.rating), comment: form.comment, status: form.status, createdAt: new Date().toISOString() }, ...feedbacks]);
-    handleAddClose();
-  }
-
-  function openEdit(f)         { setSelected(f); setForm({ customerName: f.customerName, rating: String(f.rating), comment: f.comment, status: f.status }); setShowEdit(true); }
-  function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); }
-  function handleEditSubmit(e) {
-    e.preventDefault();
-    setFeedbacks(feedbacks.map(f => f.id === selected.id ? { ...f, customerName: form.customerName, rating: Number(form.rating), comment: form.comment, status: form.status } : f));
-    handleEditClose();
-  }
-
-  function openDelete(f)         { setSelected(f); setShowDelete(true); }
-  function handleDeleteClose()   { setShowDelete(false); setSelected(null); }
-  function handleDeleteConfirm() { setFeedbacks(feedbacks.filter(f => f.id !== selected.id)); handleDeleteClose(); }
 
   const summaryCards = [
     { label: 'Total Review',  value: feedbacks.length, iconBg: 'bg-accent-blue-shadow',   iconColor: 'text-accent-blue',   icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg> },
@@ -139,9 +103,7 @@ export default function Feedback() {
               {['All','Published','Pending','Hidden'].map(f => (
                 <FilterChip key={f} label={f} active={statusFilter === f} onClick={() => setStatus(f)} />
               ))}
-              <Button size="sm" variant="default" onClick={() => setShowAdd(true)} className="rounded-full text-xs">
-                + Tambah Review
-              </Button>
+
             </div>
           }
         />
@@ -149,30 +111,24 @@ export default function Feedback() {
           <table className="w-full">
             <thead>
               <tr className="bg-neutral-bg">
-                {['No','Customer','Rating','Komentar','Status','Tanggal','Aksi'].map(h => (
+                {['No','Customer','Rating','Komentar','Status','Tanggal'].map(h => (
                   <th key={h} className="px-5 py-3.5 text-xs font-semibold text-left text-neutral-teks font-inter">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">Tidak ada review ditemukan</td></tr>
+                <tr><td colSpan={6} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">Tidak ada review ditemukan</td></tr>
               ) : filtered.map((f, i) => {
                 const sb = STATUS_BADGE[f.status];
                 return (
                   <TableRow key={f.id}>
                     <TableCell><span className="text-neutral-teks">{String(i+1).padStart(2,'0')}.</span></TableCell>
-                    <TableCell><span className="text-sm font-medium text-primary-2">{f.customerName}</span></TableCell>
+                    <TableCell><span className="text-sm font-medium text-primary-2">{f.customer_name}</span></TableCell>
                     <TableCell><Stars rating={f.rating} /></TableCell>
                     <TableCell><span className="text-xs text-neutral-teks max-w-[240px] block truncate">{f.comment}</span></TableCell>
                     <TableCell><LabelBadge label={f.status} bgClass={sb.bgClass} textClass={sb.textClass} /></TableCell>
-                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(f.createdAt)}</span></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openEdit(f)}   className="p-1.5 rounded-lg text-accent-blue hover:bg-accent-blue-shadow transition-colors"><IconEdit /></button>
-                        <button onClick={() => openDelete(f)} className="p-1.5 rounded-lg text-secondary hover:bg-accent-pink-shadow transition-colors"><IconTrash /></button>
-                      </div>
-                    </TableCell>
+                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(f.created_at)}</span></TableCell>
                   </TableRow>
                 );
               })}
@@ -181,35 +137,6 @@ export default function Feedback() {
         </div>
         <TableFooter showing={filtered.length} total={feedbacks.length} label="review" />
       </div>
-
-      {/* Modal Add/Edit shared form */}
-      {(showAdd || showEdit) && (
-        <Modal isOpen={showAdd || showEdit} onClose={showEdit ? handleEditClose : handleAddClose}
-          title={showEdit ? 'Edit Review' : 'Tambah Review'}
-          subtitle={showEdit ? selected?.id : 'Input review baru'}>
-          <form onSubmit={showEdit ? handleEditSubmit : handleAddSubmit} className="space-y-4">
-            <InputField label="Nama Customer" name="customerName" value={form.customerName} onChange={handleChange} placeholder="e.g. Andi Saputra" required />
-            <SelectField label="Rating" name="rating" value={form.rating} onChange={handleChange} options={['5','4','3','2','1']} />
-            <TextArea label="Komentar" name="comment" value={form.comment} onChange={handleChange} placeholder="Tulis komentar customer..." rows={3} required />
-            <SelectField label="Status" name="status" value={form.status} onChange={handleChange} options={['Published','Pending','Hidden']} />
-            <ModalFooter onCancel={showEdit ? handleEditClose : handleAddClose} submitLabel={showEdit ? 'Simpan Perubahan' : 'Tambah Review'} />
-          </form>
-        </Modal>
-      )}
-
-      {/* Modal Delete */}
-      <Modal isOpen={showDelete} onClose={handleDeleteClose} title="Hapus Review" subtitle="Tindakan ini tidak dapat dibatalkan">
-        <div className="space-y-4">
-          <p className="text-sm text-neutral-teks font-inter">
-            Hapus review dari <span className="font-semibold text-primary-2">{selected?.customerName}</span>?
-            <span className="block mt-1 text-xs italic">"{selected?.comment?.slice(0,60)}..."</span>
-          </p>
-          <div className="flex gap-3">
-            <button onClick={handleDeleteClose}   type="button" className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-neutral-border text-neutral-teks bg-neutral-bg font-inter">Batal</button>
-            <button onClick={handleDeleteConfirm} type="button" className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-secondary text-neutral hover:opacity-90 font-inter">Hapus</button>
-          </div>
-        </div>
-      </Modal>
     </Container>
   );
 }

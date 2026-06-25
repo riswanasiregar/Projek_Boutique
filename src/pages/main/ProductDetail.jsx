@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 import { LabelBadge } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
@@ -7,19 +9,6 @@ import InfoRow from '../../components/InfoRow';
 import EmptyState from '../../components/EmptyState';
 import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
-
-const initialProducts = [
-  { id: 'PRD-001', name: 'Floral Summer Dress',  category: 'Dress',     price: 350000, stock: 15 },
-  { id: 'PRD-002', name: 'Classic White Blouse',  category: 'Top',       price: 180000, stock: 30 },
-  { id: 'PRD-003', name: 'High-Waist Trousers',   category: 'Bottom',    price: 275000, stock: 20 },
-  { id: 'PRD-004', name: 'Knit Cardigan',          category: 'Outerwear', price: 420000, stock: 12 },
-  { id: 'PRD-005', name: 'Silk Midi Skirt',        category: 'Bottom',    price: 310000, stock: 18 },
-  { id: 'PRD-006', name: 'Linen Blazer',           category: 'Outerwear', price: 580000, stock: 8  },
-  { id: 'PRD-007', name: 'Wrap Maxi Dress',        category: 'Dress',     price: 450000, stock: 10 },
-  { id: 'PRD-008', name: 'Crop Cami Top',          category: 'Top',       price: 120000, stock: 25 },
-  { id: 'PRD-009', name: 'Wide Leg Jeans',         category: 'Bottom',    price: 390000, stock: 14 },
-  { id: 'PRD-010', name: 'Trench Coat',            category: 'Outerwear', price: 850000, stock: 5  },
-];
 
 const CATEGORY_BADGE = {
   Dress:       { bgClass: 'bg-accent-pink-shadow',   textClass: 'text-secondary'     },
@@ -57,8 +46,27 @@ function getStockHistory(id) {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const product = initialProducts.find(p => p.id === id);
+  useEffect(() => {
+    async function fetchData() {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (data) setProduct(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, [id]);
+
+  if (loading) return (
+    <Container>
+      <p className="text-center py-20 text-neutral-teks font-inter">Memuat data...</p>
+    </Container>
+  );
 
   if (!product) return (
     <EmptyState

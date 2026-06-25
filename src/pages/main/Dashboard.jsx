@@ -1,7 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useOutletContext } from 'react-router-dom';
-import ordersData from '../../data/orders.json';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 
 import { StatCard, CardHeader } from '../../components/Card';
 import { StatusBadge, LoyaltyBadge } from '../../components/Badge';
@@ -13,15 +13,37 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 export default function Dashboard() {
   const { searchQuery = '' } = useOutletContext?.() || {};
+  const [orders, setOrders]       = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading]     = useState(true);
 
-  const totalOrders  = ordersData.length;
-  const completed    = ordersData.filter(o => o.status === 'Completed').length;
-  const totalRevenue = ordersData.filter(o => o.status === 'Completed').reduce((s, o) => s + o.totalPrice, 0);
-  const totalCust    = customersData.length;
+  useEffect(() => {
+    async function fetchData() {
+      const { data: ords } = await supabase
+        .from('orders')
+        .select('*, customers(name)')
+        .order('order_date', { ascending: false });
+      if (ords) setOrders(ords);
 
-  const recentOrders = [...ordersData].reverse().slice(0, 5).filter(o => {
+      const { data: custs } = await supabase
+        .from('customers')
+        .select('*')
+        .order('id', { ascending: true });
+      if (custs) setCustomers(custs);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  const totalOrders  = orders.length;
+  const completed    = orders.filter(o => o.status === 'Completed').length;
+  const totalRevenue = orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.total_price, 0);
+  const totalCust    = customers.length;
+
+  const recentOrders = orders.slice(0, 5).filter(o => {
     const q = searchQuery.toLowerCase();
-    return !q || o.customerName.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
+    const custName = o.customers?.name || '';
+    return !q || custName.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
   });
 
   const statCards = [
@@ -31,7 +53,7 @@ export default function Dashboard() {
       icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
     },
     {
-      label: 'Total Customers', value: totalCust, sub: `${customersData.filter(c => c.loyalty === 'Gold').length} gold members`,
+      label: 'Total Customers', value: totalCust, sub: `${customers.filter(c => c.loyalty === 'Gold').length} gold members`,
       iconBg: 'bg-accent-pink-shadow', iconColor: 'text-accent-pink',
       icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     },
@@ -116,17 +138,17 @@ export default function Dashboard() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Avatar name={order.customerName} size="sm"
+                      <Avatar name={order.customers?.name || '-'} size="sm"
                         bgClass="bg-accent-blue-shadow" textClass="text-primary-3" />
                       <span className="text-xs font-medium text-primary-2 font-inter">
-                        {order.customerName}
+                        {order.customers?.name || '-'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-neutral-teks font-inter">{order.orderDate}</td>
+                  <td className="px-4 py-3 text-xs text-neutral-teks font-inter">{order.order_date}</td>
                   <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                   <td className="px-4 py-3 text-right text-xs font-bold text-primary-2 font-inter">
-                    Rp {order.totalPrice.toLocaleString('id-ID')}
+                    Rp {order.total_price.toLocaleString('id-ID')}
                   </td>
                 </tr>
               ))}
@@ -153,7 +175,7 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {customersData.slice(0, 5).map((c, i) => (
+              {customers.slice(0, 5).map((c, i) => (
                 <tr key={c.id}
                   className="border-t border-neutral-border hover:bg-neutral-bg transition-colors">
                   <td className="px-4 py-3 text-xs font-medium text-neutral-teks font-inter">

@@ -1,6 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import ordersData from '../../data/orders.json';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 
 import { StatusBadge, LoyaltyBadge } from '../../components/Badge';
 import Avatar from '../../components/Avatar';
@@ -11,19 +11,6 @@ import EmptyState from '../../components/EmptyState';
 import { CardHeader } from '../../components/Card';
 import { Button } from '../../components/ui/button';
 import Container, { PageSection } from '../../components/Container';
-
-const orderItemsMap = {
-  'ORD-001': [{ name: 'Floral Midi Dress', qty: 1, price: 89000 }, { name: 'Pastel Cardigan', qty: 1, price: 61000 }],
-  'ORD-002': [{ name: 'Linen Blouse', qty: 1, price: 75000 }],
-  'ORD-003': [{ name: 'Summer Shorts', qty: 2, price: 20000 }],
-  'ORD-004': [{ name: 'Evening Gown', qty: 1, price: 150000 }, { name: 'Silk Scarf', qty: 1, price: 50000 }],
-};
-function getItems(id) {
-  return orderItemsMap[id] || [
-    { name: 'Boutique Item A', qty: 1, price: 85000 },
-    { name: 'Boutique Item B', qty: 1, price: 65000 },
-  ];
-}
 
 const timelineMap = {
   Completed: [
@@ -47,7 +34,50 @@ const timelineMap = {
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const order = ordersData.find(o => o.id === id);
+  const [order, setOrder]     = useState(null);
+  const [customer, setCustomer] = useState(null);
+  const [items, setItems]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      // Fetch order with customer
+      const { data: ord } = await supabase
+        .from('orders')
+        .select('*, customers!inner(id, name, email, phone, loyalty)')
+        .eq('orders.id', id)
+        .maybeSingle();
+
+      if (ord) {
+        setOrder(ord);
+        if (ord.customers) setCustomer(ord.customers);
+
+        // Fetch order items
+        const { data: oItems } = await supabase
+          .from('order_items')
+          .select('*')
+          .eq('order_id', ord.id)
+          .order('id');
+        if (oItems && oItems.length > 0) {
+          setItems(oItems.map(it => ({ name: it.product_name, qty: it.qty, price: it.price })));
+        } else {
+          // Fallback: dummy items if no order_items yet
+          setItems([
+            { name: 'Boutique Item A', qty: 1, price: 85000 },
+            { name: 'Boutique Item B', qty: 1, price: 65000 },
+          ]);
+        }
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, [id]);
+
+  if (loading) return (
+    <Container>
+      <p className="text-center py-20 text-neutral-teks font-inter">Memuat data...</p>
+    </Container>
+  );
 
   if (!order) return (
     <EmptyState
@@ -67,17 +97,15 @@ export default function OrderDetail() {
     />
   );
 
-  const customer = customersData.find(c => c.name.toLowerCase() === order.customerName.toLowerCase());
-  const items    = getItems(order.id);
   const timeline = timelineMap[order.status] || timelineMap.Pending;
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   const orderInfoRows = [
     { label: 'Order ID',   value: order.id,          mono: true },
-    { label: 'Tanggal',    value: order.orderDate               },
-    { label: 'Customer',   value: order.customerName            },
-    { label: 'Metode',     value: 'Transfer Bank'               },
-    { label: 'Pengiriman', value: 'JNE Regular'                 },
+    { label: 'Tanggal',    value: order.order_date              },
+    { label: 'Customer',   value: customer?.name || '-'         },
+    { label: 'Metode',     value: order.payment_method || 'Transfer Bank' },
+    { label: 'Pengiriman', value: order.shipping_method || 'JNE Regular'  },
   ];
 
   return (
@@ -185,7 +213,7 @@ export default function OrderDetail() {
               <div className="flex items-center justify-between pt-2 border-t border-neutral-border">
                 <span className="text-sm font-semibold text-primary-2 font-inter">Total</span>
                 <span className="text-base font-bold text-primary-3 font-inter">
-                  Rp {order.totalPrice.toLocaleString('id-ID')}
+                  Rp {order.total_price.toLocaleString('id-ID')}
                 </span>
               </div>
             </div>
@@ -205,7 +233,7 @@ export default function OrderDetail() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-primary-2 font-inter">{order.customerName}</p>
+                <p className="text-sm font-semibold text-primary-2 font-inter">{customer?.name || '-'}</p>
                 <p className="text-xs mt-1 leading-relaxed text-neutral-teks font-inter">
                   {order.address || `Jl. Boutique No. ${order.id.replace('ORD-', '')}, Jakarta Pusat 10310`}
                 </p>

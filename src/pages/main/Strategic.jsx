@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import ordersData from '../../data/orders.json';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 import { FilterChip, LabelBadge, LoyaltyBadge } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
@@ -10,27 +9,6 @@ import Container, { PageSection } from '../../components/Container';
 /* ── helpers ── */
 function fmtRp(v) { return 'Rp ' + Math.round(v || 0).toLocaleString('id-ID'); }
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-
-/* ── static product data ── */
-const productsData = [
-  { id:'PRD-001', name:'Floral Summer Dress',  category:'Dress',     price:350000, stock:15 },
-  { id:'PRD-002', name:'Classic White Blouse',  category:'Top',       price:180000, stock:30 },
-  { id:'PRD-003', name:'High-Waist Trousers',   category:'Bottom',    price:275000, stock:20 },
-  { id:'PRD-004', name:'Knit Cardigan',          category:'Outerwear', price:420000, stock:12 },
-  { id:'PRD-005', name:'Silk Midi Skirt',        category:'Bottom',    price:310000, stock:18 },
-  { id:'PRD-006', name:'Linen Blazer',           category:'Outerwear', price:580000, stock:8  },
-  { id:'PRD-007', name:'Wrap Maxi Dress',        category:'Dress',     price:450000, stock:10 },
-  { id:'PRD-008', name:'Crop Cami Top',          category:'Top',       price:120000, stock:25 },
-  { id:'PRD-009', name:'Wide Leg Jeans',         category:'Bottom',    price:390000, stock:14 },
-  { id:'PRD-010', name:'Trench Coat',            category:'Outerwear', price:850000, stock:5  },
-];
-
-const orderItemsMap = {
-  'ORD-001': [{ name:'Floral Midi Dress' }, { name:'Pastel Cardigan' }],
-  'ORD-002': [{ name:'Linen Blouse' }],
-  'ORD-003': [{ name:'Summer Shorts' }],
-  'ORD-004': [{ name:'Evening Gown' }, { name:'Silk Scarf' }],
-};
 
 /* Monthly revenue targets (simulated) */
 const REVENUE_TARGETS = {
@@ -87,6 +65,11 @@ function GaugeChart({ value, max, color = '#2D60FF', label }) {
 ═════════════════════════════════════ */
 export default function Strategic() {
   const [activeTab, setActiveTab] = useState('Overview');
+  const [ordersData, setOrdersData] = useState([]);
+  const [customersData, setCustomersData] = useState([]);
+  const [productsData, setProductsData] = useState([]);
+  const [orderItemsMap, setOrderItemsMap] = useState({});
+  const [loading, setLoading] = useState(true);
 
   // useRef: scroll tab aktif ke tengah saat berpindah
   const activeTabBtnRef = useRef(null);
@@ -95,10 +78,41 @@ export default function Strategic() {
     activeTabBtnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [activeTab]);
 
+  useEffect(() => {
+    async function fetchData() {
+      const [{ data: orders }, { data: customers }, { data: products }, { data: items }] = await Promise.all([
+        supabase.from('orders').select('*, customers(name)').order('id'),
+        supabase.from('customers').select('*').order('id'),
+        supabase.from('products').select('*').order('id'),
+        supabase.from('order_items').select('*').order('id'),
+      ]);
+      setOrdersData((orders || []).map(o => ({
+        ...o,
+        orderDate: o.order_date,
+        totalPrice: o.total_price,
+        customerName: o.customers?.name || '',
+      })));
+      setCustomersData(customers || []);
+      setProductsData((products || []).map(p => ({
+        ...p,
+        price: p.price || 0,
+        stock: p.stock || 0,
+      })));
+      const map = {};
+      (items || []).forEach(i => {
+        if (!map[i.order_id]) map[i.order_id] = [];
+        map[i.order_id].push({ name: i.product_name || i.name });
+      });
+      setOrderItemsMap(map);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
   /* ── total revenue (completed) ── */
   const totalRevenue = useMemo(() =>
     ordersData.filter(o => o.status === 'Completed').reduce((a, o) => a + o.totalPrice, 0),
-  []);
+  [ordersData]);
 
   const totalOrders    = ordersData.length;
   const completedOrders = ordersData.filter(o => o.status === 'Completed').length;
@@ -116,7 +130,7 @@ export default function Strategic() {
       actual,
       target: REVENUE_TARGETS[month] || 2000000,
     }));
-  }, []);
+  }, [ordersData]);
 
   /* ── Customer growth (new customers per month) ── */
   const customerGrowth = useMemo(() => {
@@ -132,14 +146,14 @@ export default function Strategic() {
       data: sorted.map(k => byMonth[k]),
       labels: sorted.map(k => MONTH_NAMES[parseInt(k.split('-')[1]) - 1]),
     };
-  }, []);
+  }, [ordersData]);
 
   /* ── Loyalty distribution ── */
   const loyaltyDist = useMemo(() => {
     const dist = { Gold: 0, Silver: 0, Bronze: 0 };
     customersData.forEach(c => { if (dist[c.loyalty] !== undefined) dist[c.loyalty]++; });
     return dist;
-  }, []);
+  }, [customersData]);
 
   const totalCustomers = customersData.length;
 
@@ -171,7 +185,7 @@ export default function Strategic() {
 
       return { ...c, segment, frequency, monetary, lastOrderDate: lastOrder?.orderDate || null };
     });
-  }, []);
+  }, [customersData, ordersData]);
 
   const segmentCounts = useMemo(() => {
     const c = { Champions: 0, Loyal: 0, 'At Risk': 0, Lost: 0, New: 0 };
@@ -194,7 +208,7 @@ export default function Strategic() {
       items.forEach(i => { d[i.name] = (d[i.name] || 0) + 1; })
     );
     return d;
-  }, []);
+  }, [orderItemsMap]);
 
   /* ── Action recommendations ── */
   const recommendations = useMemo(() => {
@@ -261,13 +275,15 @@ export default function Strategic() {
     }
 
     return recs;
-  }, [rfmSegments, upgradeCandidates, monthlyRevenue, productDemand]);
+  }, [rfmSegments, upgradeCandidates, monthlyRevenue, productDemand, productsData]);
 
   const PRIORITY_STYLE = {
     high:   { border: 'border-secondary', bg: 'bg-accent-pink-shadow', text: 'text-secondary', badge: 'Urgent' },
     medium: { border: 'border-accent-yellow', bg: 'bg-accent-yellow-shadow', text: 'text-accent-yellow', badge: 'Penting' },
     low:    { border: 'border-accent-blue', bg: 'bg-accent-blue-shadow', text: 'text-accent-blue', badge: 'Info' },
   };
+
+  if (loading) return <Container><p className="text-center py-12 text-neutral-teks font-inter">Memuat data...</p></Container>;
 
   return (
     <Container>

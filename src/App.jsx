@@ -3,9 +3,13 @@ import { Routes, Route } from 'react-router-dom';
 import Loading from './components/Loading';
 
 // Layouts
+const GuestLayout    = lazy(() => import('./layouts/GuestLayout'));
 const AuthLayout     = lazy(() => import('./layouts/AuthLayout'));
 const MainLayout     = lazy(() => import('./layouts/MainLayout'));
 const ProtectedRoute = lazy(() => import('./layouts/ProtectedRoute'));
+
+// Guest pages
+const CompanyProfile = lazy(() => import('./pages/guest/CompanyProfile'));
 
 // Auth pages
 const Login    = lazy(() => import('./pages/auth/Login'));
@@ -44,6 +48,9 @@ export default function App() {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
+        <Route element={<GuestLayout />}>
+          <Route path="/guest" element={<CompanyProfile />} />
+        </Route>
         <Route element={<AuthLayout />}>
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import { LabelBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
@@ -20,19 +21,6 @@ import {
 } from '../../components/ui/pagination';
 
 const ITEMS_PER_PAGE = 10;
-
-const initialProducts = [
-  { id: 'PRD-001', name: 'Floral Summer Dress',  category: 'Dress',     price: 350000, stock: 15 },
-  { id: 'PRD-002', name: 'Classic White Blouse',  category: 'Top',       price: 180000, stock: 30 },
-  { id: 'PRD-003', name: 'High-Waist Trousers',   category: 'Bottom',    price: 275000, stock: 20 },
-  { id: 'PRD-004', name: 'Knit Cardigan',          category: 'Outerwear', price: 420000, stock: 12 },
-  { id: 'PRD-005', name: 'Silk Midi Skirt',        category: 'Bottom',    price: 310000, stock: 18 },
-  { id: 'PRD-006', name: 'Linen Blazer',           category: 'Outerwear', price: 580000, stock: 8  },
-  { id: 'PRD-007', name: 'Wrap Maxi Dress',        category: 'Dress',     price: 450000, stock: 10 },
-  { id: 'PRD-008', name: 'Crop Cami Top',          category: 'Top',       price: 120000, stock: 25 },
-  { id: 'PRD-009', name: 'Wide Leg Jeans',         category: 'Bottom',    price: 390000, stock: 14 },
-  { id: 'PRD-010', name: 'Trench Coat',            category: 'Outerwear', price: 850000, stock: 5  },
-];
 
 const CATEGORY_BADGE = {
   Dress:       { bgClass: 'bg-accent-pink-shadow',   textClass: 'text-secondary'     },
@@ -77,7 +65,8 @@ function IconTrash() {
 
 export default function Products() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [products, setProducts]     = useState(initialProducts);
+  const [products, setProducts]     = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [activeFilter, setFilter]   = useState('All');
   const [showAdd, setShowAdd]       = useState(false);
   const [showEdit, setShowEdit]     = useState(false);
@@ -88,6 +77,18 @@ export default function Products() {
 
   // useRef: auto-focus input Name saat modal Add/Edit dibuka
   const productNameRef = useRef(null);
+
+  // Fetch products from Supabase
+  async function fetchProducts() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('id', { ascending: true });
+    if (!error && data) setProducts(data);
+    setLoading(false);
+  }
+  useEffect(() => { fetchProducts(); }, []);
 
   const filtered = products.filter(p => {
     const matchCat = activeFilter === 'All' || p.category === activeFilter;
@@ -114,11 +115,23 @@ export default function Products() {
 
   // Add
   function handleAddClose()   { setShowAdd(false); setForm(emptyForm); }
-  function handleAddSubmit(e) {
+  async function handleAddSubmit(e) {
     e.preventDefault();
-    const newId = `PRD-${String(products.length + 1).padStart(3, '0')}`;
-    setProducts([{ id: newId, name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) }, ...products]);
-    handleAddClose();
+    const { data: last } = await supabase
+      .from('products')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('PRD-', ''), 10) : 0;
+    const newId = `PRD-${String(lastNum + 1).padStart(3, '0')}`;
+
+    const { error } = await supabase
+      .from('products')
+      .insert({ id: newId, name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) });
+
+    if (!error) { await fetchProducts(); handleAddClose(); }
+    else alert('Gagal menambah produk: ' + error.message);
   }
 
   // Edit
@@ -128,19 +141,25 @@ export default function Products() {
     setShowEdit(true);
   }
   function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); }
-  function handleEditSubmit(e) {
+  async function handleEditSubmit(e) {
     e.preventDefault();
-    setProducts(products.map(p => p.id === selected.id
-      ? { ...p, name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) }
-      : p
-    ));
-    handleEditClose();
+    const { error } = await supabase
+      .from('products')
+      .update({ name: form.name, category: form.category, price: Number(form.price), stock: Number(form.stock) })
+      .eq('id', selected.id);
+
+    if (!error) { await fetchProducts(); handleEditClose(); }
+    else alert('Gagal mengedit produk: ' + error.message);
   }
 
   // Delete
   function openDelete(product)      { setSelected(product); setShowDelete(true); }
   function handleDeleteClose()      { setShowDelete(false); setSelected(null); }
-  function handleDeleteConfirm()    { setProducts(products.filter(p => p.id !== selected.id)); handleDeleteClose(); }
+  async function handleDeleteConfirm() {
+    const { error } = await supabase.from('products').delete().eq('id', selected.id);
+    if (!error) { await fetchProducts(); handleDeleteClose(); }
+    else alert('Gagal menghapus produk: ' + error.message);
+  }
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
 
@@ -207,7 +226,13 @@ export default function Products() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
                     No products found

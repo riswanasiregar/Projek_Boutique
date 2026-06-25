@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import ordersData from '../../data/orders.json';
+import { supabase } from '../../lib/supabase';
 import { StatusBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
@@ -23,7 +23,7 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
-const emptyForm = { customerName: '', status: 'Pending', totalPrice: '', orderDate: '', address: '' };
+const emptyForm = { customer_id: '', status: 'Pending', order_date: '', address: '' };
 
 function buildPageRange(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -60,11 +60,14 @@ function IconTrash() {
 
 export default function Orders() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [orders, setOrders]         = useState(ordersData);
+  const [orders, setOrders]         = useState([]);
+  const [customers, setCustomers]   = useState([]);
+  const [products, setProducts]     = useState([]);
+  const [orderItems, setOrderItems] = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [activeFilter, setFilter]   = useState('All');
   const [showAdd, setShowAdd]       = useState(false);
   const [showEdit, setShowEdit]     = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
   const [selected, setSelected]     = useState(null);
   const [form, setForm]             = useState(emptyForm);
   const [page, setPage]             = useState(1);
@@ -72,10 +75,42 @@ export default function Orders() {
   // useRef: auto-focus input Customer Name saat modal Add/Edit dibuka
   const customerNameRef = useRef(null);
 
+  // Fetch orders with customer name
+  async function fetchOrders() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, customers(name)')
+      .order('order_date', { ascending: false });
+    if (!error && data) setOrders(data);
+    setLoading(false);
+  }
+
+  // Fetch customers for dropdown
+  async function fetchCustomers() {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name')
+      .order('name');
+    if (data) setCustomers(data);
+  }
+
+  // Fetch products for dropdown
+  async function fetchProducts() {
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, price')
+      .order('name');
+    if (data) setProducts(data);
+  }
+
+  useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); }, []);
+
   const filtered = orders.filter(o => {
     const matchStatus = activeFilter === 'All' || o.status === activeFilter;
     const q = searchQuery.toLowerCase();
-    return matchStatus && (!q || o.id.toLowerCase().includes(q) || o.customerName.toLowerCase().includes(q));
+    const custName = o.customers?.name || '';
+    return matchStatus && (!q || o.id.toLowerCase().includes(q) || custName.toLowerCase().includes(q));
   });
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -97,36 +132,112 @@ export default function Orders() {
     Pending:   orders.filter(o => o.status === 'Pending').length,
     Cancelled: orders.filter(o => o.status === 'Cancelled').length,
   };
-  const totalRevenue = orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.totalPrice, 0);
+  const totalRevenue = orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.total_price, 0);
+
+  const computedTotal = orderItems.reduce((sum, it) => sum + it.price * it.qty, 0);
 
   // Add
-  function handleAddClose()   { setShowAdd(false); setForm(emptyForm); }
-  function handleAddSubmit(e) {
+  function handleAddClose()   { setShowAdd(false); setForm(emptyForm); setOrderItems([]); }
+  async function handleAddSubmit(e) {
     e.preventDefault();
-    const newId = `ORD-${String(orders.length + 1).padStart(3, '0')}`;
-    setOrders([{ id: newId, ...form, totalPrice: Number(form.totalPrice) }, ...orders]);
-    handleAddClose();
+    if (orderItems.length === 0) { alert('Tambahkan minimal 1 produk'); return; }
+    const { data: last } = await supabase
+      .from('orders')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('ORD-', ''), 10) : 0;
+    const newId = `ORD-${String(lastNum + 1).padStart(3, '0')}`;
+
+    const { error } = await supabase
+      .from('orders')
+      .insert({ id: newId, customer_id: form.customer_id, total_price: computedTotal, status: form.status, order_date: form.order_date, address: form.address });
+    if (error) { alert('Gagal menambah order: ' + error.message); return; }
+
+    // Insert order items
+    const itemsPayload = orderItems.map(it => ({
+      order_id: newId,
+      product_id: it.product_id,
+      product_name: it.product_name,
+      qty: it.qty,
+      price: it.price,
+    }));
+    const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
+    if (itemsErr) { alert('Order tersimpan tapi item gagal: ' + itemsErr.message); }
+
+    await fetchOrders(); handleAddClose();
   }
 
   // Edit
-  function openEdit(order) {
+  async function openEdit(order) {
     setSelected(order);
-    setForm({ customerName: order.customerName, status: order.status, totalPrice: String(order.totalPrice), orderDate: order.orderDate, address: order.address });
+    setForm({ customer_id: order.customer_id, status: order.status, order_date: order.order_date, address: order.address });
+    // Fetch existing items for this order
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', order.id)
+      .order('id');
+    setOrderItems((items || []).map(it => ({ product_id: it.product_id || '', product_name: it.product_name, qty: it.qty, price: it.price })));
     setShowEdit(true);
   }
-  function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); }
-  function handleEditSubmit(e) {
+  function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); setOrderItems([]); }
+  async function handleEditSubmit(e) {
     e.preventDefault();
-    setOrders(orders.map(o => o.id === selected.id ? { ...o, ...form, totalPrice: Number(form.totalPrice) } : o));
-    handleEditClose();
+    if (orderItems.length === 0) { alert('Tambahkan minimal 1 produk'); return; }
+    const { error } = await supabase
+      .from('orders')
+      .update({ customer_id: form.customer_id, status: form.status, total_price: computedTotal, order_date: form.order_date, address: form.address })
+      .eq('id', selected.id);
+    if (error) { alert('Gagal mengedit order: ' + error.message); return; }
+
+    // Delete old items and re-insert
+    await supabase.from('order_items').delete().eq('order_id', selected.id);
+    const itemsPayload = orderItems.map(it => ({
+      order_id: selected.id,
+      product_id: it.product_id,
+      product_name: it.product_name,
+      qty: it.qty,
+      price: it.price,
+    }));
+    const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
+    if (itemsErr) { alert('Order tersimpan tapi item gagal: ' + itemsErr.message); }
+
+    await fetchOrders(); handleEditClose();
   }
 
-  // Delete
-  function openDelete(order)    { setSelected(order); setShowDelete(true); }
-  function handleDeleteClose()  { setShowDelete(false); setSelected(null); }
-  function handleDeleteConfirm(){ setOrders(orders.filter(o => o.id !== selected.id)); handleDeleteClose(); }
-
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
+
+  // Order items management
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedQty, setSelectedQty]         = useState(1);
+
+  function handleAddItem() {
+    if (!selectedProduct) return;
+    const prod = products.find(p => p.id === selectedProduct);
+    if (!prod) return;
+    const existing = orderItems.findIndex(it => it.product_id === prod.id);
+    if (existing >= 0) {
+      const updated = [...orderItems];
+      updated[existing] = { ...updated[existing], qty: updated[existing].qty + Number(selectedQty) };
+      setOrderItems(updated);
+    } else {
+      setOrderItems([...orderItems, { product_id: prod.id, product_name: prod.name, qty: Number(selectedQty), price: prod.price }]);
+    }
+    setSelectedProduct('');
+    setSelectedQty(1);
+  }
+
+  function handleRemoveItem(idx) {
+    setOrderItems(orderItems.filter((_, i) => i !== idx));
+  }
+
+  function handleItemQtyChange(idx, val) {
+    const updated = [...orderItems];
+    updated[idx] = { ...updated[idx], qty: Math.max(1, Number(val) || 1) };
+    setOrderItems(updated);
+  }
 
   const summaryCards = [
     { label: 'Total Orders',  value: orders.length,                          iconBg: 'bg-accent-blue-shadow',   iconColor: 'text-accent-blue',
@@ -146,9 +257,72 @@ export default function Orders() {
           {selected?.id}
         </div>
       )}
-      <InputField ref={customerNameRef} label="Customer Name" name="customerName" value={form.customerName} onChange={handleChange} placeholder="e.g. Andi Saputra" required />
-      <InputField label="Total Price (Rp)"  name="totalPrice"   value={form.totalPrice}   onChange={handleChange} placeholder="e.g. 150000"         required type="number" />
-      <InputField label="Order Date"        name="orderDate"    value={form.orderDate}    onChange={handleChange} required type="date" />
+      <SelectField ref={customerNameRef} label="Customer" name="customer_id" value={form.customer_id} onChange={handleChange}
+        options={[{ value: '', label: '— Pilih customer —' }, ...customers.map(c => ({ value: c.id, label: `${c.name} (${c.id})` }))]}
+        required />
+  
+      {/* ── Order Items ── */}
+      <div>
+        <p className="block text-xs font-semibold mb-1.5 text-primary-2 font-inter">Produk</p>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <SelectField name="selectedProduct" value={selectedProduct}
+              onChange={e => setSelectedProduct(e.target.value)}
+              options={[{ value: '', label: '— Pilih produk —' }, ...products.map(p => ({ value: p.id, label: `${p.name} (Rp ${p.price.toLocaleString('id-ID')})` }))]} />
+          </div>
+          <div className="w-20">
+            <InputField name="qty" value={selectedQty} type="number" min={1}
+              onChange={e => setSelectedQty(e.target.value)} placeholder="Qty" />
+          </div>
+          <button type="button" onClick={handleAddItem}
+            className="px-3 py-2.5 rounded-xl bg-accent-blue-shadow text-accent-blue text-sm font-semibold hover:bg-accent-blue-shadow/80 transition-colors flex-shrink-0">
+            + Tambah
+          </button>
+        </div>
+        {orderItems.length > 0 && (
+          <div className="mt-2 rounded-xl border border-neutral-border overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-neutral-bg">
+                  <th className="px-3 py-2 text-xs text-left text-neutral-teks font-inter">Produk</th>
+                  <th className="px-3 py-2 text-xs text-center text-neutral-teks font-inter w-16">Qty</th>
+                  <th className="px-3 py-2 text-xs text-right text-neutral-teks font-inter w-24">Harga</th>
+                  <th className="px-3 py-2 text-xs text-right text-neutral-teks font-inter w-28">Subtotal</th>
+                  <th className="px-3 py-2 text-xs text-center w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderItems.map((it, idx) => (
+                  <tr key={idx} className="border-t border-neutral-border">
+                    <td className="px-3 py-2 text-sm text-primary-2">{it.product_name}</td>
+                    <td className="px-3 py-2">
+                      <input type="number" min={1} value={it.qty}
+                        onChange={e => handleItemQtyChange(idx, e.target.value)}
+                        className="w-14 px-2 py-1 rounded-lg border border-neutral-border bg-neutral-bg text-sm text-center text-primary-2" />
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-neutral-teks">Rp {it.price.toLocaleString('id-ID')}</td>
+                    <td className="px-3 py-2 text-sm text-right font-semibold text-primary-2">Rp {(it.price * it.qty).toLocaleString('id-ID')}</td>
+                    <td className="px-3 py-2 text-center">
+                      <button type="button" onClick={() => handleRemoveItem(idx)} className="text-secondary hover:text-secondary/80">
+                        <IconTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-neutral-border bg-neutral-bg">
+                  <td colSpan={3} className="px-3 py-2 text-sm font-bold text-primary-2">Total</td>
+                  <td className="px-3 py-2 text-sm font-bold text-right text-primary-2">Rp {computedTotal.toLocaleString('id-ID')}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+  
+      <InputField label="Order Date"        name="order_date"    value={form.order_date}    onChange={handleChange} required type="date" />
       <InputField label="Alamat Pengiriman" name="address"      value={form.address}      onChange={handleChange} placeholder="e.g. Jl. Sudirman 12" required />
       <SelectField label="Status" name="status" value={form.status} onChange={handleChange}
         options={['Pending', 'Completed', 'Cancelled']} />
@@ -191,7 +365,13 @@ export default function Orders() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
                     No orders found
@@ -209,35 +389,28 @@ export default function Orders() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Avatar name={order.customerName} size="sm" bgClass="bg-accent-blue-shadow" textClass="text-primary-3" />
-                      <span className="text-sm font-medium text-primary-2">{order.customerName}</span>
+                      <Avatar name={order.customers?.name || '-'} size="sm" bgClass="bg-accent-blue-shadow" textClass="text-primary-3" />
+                      <span className="text-sm font-medium text-primary-2">{order.customers?.name || '-'}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-neutral-teks max-w-[160px] block">{order.address || '-'}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs text-neutral-teks">{order.orderDate}</span>
+                    <span className="text-xs text-neutral-teks">{order.order_date}</span>
                   </TableCell>
                   <TableCell><StatusBadge status={order.status} /></TableCell>
                   <TableCell>
                     <span className="text-sm font-semibold text-primary-2">
-                      Rp {order.totalPrice.toLocaleString('id-ID')}
+                      Rp {order.total_price.toLocaleString('id-ID')}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => openEdit(order)}
-                        className="p-1.5 rounded-lg text-accent-blue hover:bg-accent-blue-shadow transition-colors"
-                        title="Edit order">
-                        <IconEdit />
-                      </button>
-                      <button onClick={() => openDelete(order)}
-                        className="p-1.5 rounded-lg text-secondary hover:bg-accent-pink-shadow transition-colors"
-                        title="Hapus order">
-                        <IconTrash />
-                      </button>
-                    </div>
+                    <button onClick={() => openEdit(order)}
+                      className="p-1.5 rounded-lg text-accent-blue hover:bg-accent-blue-shadow transition-colors"
+                      title="Edit order">
+                      <IconEdit />
+                    </button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -248,7 +421,7 @@ export default function Orders() {
                   <td className="px-5 py-3.5 text-sm font-bold text-primary-3 font-inter" colSpan={2}>Total</td>
                   <td colSpan={4} />
                   <td className="px-5 py-3.5 text-sm font-bold text-primary-3 font-inter">
-                    Rp {filtered.reduce((s, o) => s + o.totalPrice, 0).toLocaleString('id-ID')}
+                    Rp {filtered.reduce((s, o) => s + o.total_price, 0).toLocaleString('id-ID')}
                   </td>
                   <td />
                 </tr>
@@ -291,32 +464,14 @@ export default function Orders() {
       </div>
 
       {/* Modal Add */}
-      <Modal isOpen={showAdd} onClose={handleAddClose} title="New Order" subtitle="Fill in the order details">
+      <Modal isOpen={showAdd} onClose={handleAddClose} title="New Order" subtitle="Fill in the order details" wide>
         {orderForm}
       </Modal>
 
       {/* Modal Edit */}
-      <Modal isOpen={showEdit} onClose={handleEditClose} title="Edit Order" subtitle={`Edit data untuk ${selected?.id}`}>
+      <Modal isOpen={showEdit} onClose={handleEditClose} title="Edit Order" subtitle={`Edit data untuk ${selected?.id}`} wide>
         {orderForm}
       </Modal>
-
-      {/* Modal Delete */}
-      <Modal isOpen={showDelete} onClose={handleDeleteClose} title="Hapus Order" subtitle="Tindakan ini tidak dapat dibatalkan">
-        <div className="space-y-4">
-          <p className="text-sm text-neutral-teks font-inter">
-            Apakah Anda yakin ingin menghapus order{' '}
-            <span className="font-semibold text-primary-2 font-mono">{selected?.id}</span>{' '}
-            dari <span className="font-semibold text-primary-2">{selected?.customerName}</span>?
-          </p>
-          <ModalFooter
-            onCancel={handleDeleteClose}
-            onSubmit={handleDeleteConfirm}
-            submitLabel="Hapus"
-            submitVariant="destructive"
-          />
-        </div>
-      </Modal>
-
     </Container>
   );
 }

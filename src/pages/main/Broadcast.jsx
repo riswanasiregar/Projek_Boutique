@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 import { LabelBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
@@ -29,13 +29,7 @@ const CHANNEL_BADGE = {
   Both:     { bgClass: 'bg-accent-yellow-shadow', textClass: 'text-accent-yellow' },
 };
 
-const initialBroadcasts = [
-  { id: 'BC-001', title: 'Promo Hari Valentine',     message: 'Dapatkan diskon 20% untuk semua produk dress!',        channel: 'Email',    target: 'All',    recipients: customersData,                                   status: 'Sent',      createdAt: '2026-02-10T09:00:00', sentAt: '2026-02-10T10:00:00', scheduledAt: null },
-  { id: 'BC-002', title: 'Flash Sale Weekend',        message: 'Flash sale 50% untuk koleksi outerwear!',             channel: 'WhatsApp', target: 'Gold',   recipients: customersData.filter(c => c.loyalty === 'Gold'),   status: 'Sent',      createdAt: '2026-02-14T08:00:00', sentAt: '2026-02-15T09:00:00', scheduledAt: null },
-  { id: 'BC-003', title: 'Info Koleksi Baru',         message: 'Koleksi summer terbaru sudah tersedia!',              channel: 'Both',     target: 'Silver', recipients: customersData.filter(c => c.loyalty === 'Silver'), status: 'Draft',     createdAt: '2026-03-01T10:00:00', sentAt: null,                  scheduledAt: null },
-  { id: 'BC-004', title: 'Reminder Restock Favorit',  message: 'Produk favorit Anda sudah kembali tersedia.',         channel: 'Email',    target: 'All',    recipients: customersData,                                   status: 'Scheduled', createdAt: '2026-03-05T11:00:00', sentAt: null,                  scheduledAt: '2026-03-15T10:00:00' },
-  { id: 'BC-005', title: 'Ucapan Terima Kasih Gold',  message: 'Terima kasih telah menjadi pelanggan setia kami!',    channel: 'WhatsApp', target: 'Gold',   recipients: customersData.filter(c => c.loyalty === 'Gold'),   status: 'Draft',     createdAt: '2026-03-07T08:00:00', sentAt: null,                  scheduledAt: null },
-];
+const initialBroadcasts = [];
 
 const emptyForm = { title: '', message: '', channel: 'Email', target: 'All' };
 
@@ -47,7 +41,7 @@ function formatDate(iso) {
 function IconEdit()  { return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>; }
 function IconTrash() { return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>; }
 
-function getRecipients(target, manual) {
+function getRecipients(target, manual, customersData) {
   if (target === 'All')    return customersData;
   if (target === 'Manual') return manual;
   return customersData.filter(c => c.loyalty === target);
@@ -55,7 +49,9 @@ function getRecipients(target, manual) {
 
 export default function Broadcast() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [broadcasts, setBroadcasts]         = useState(initialBroadcasts);
+  const [broadcasts, setBroadcasts]         = useState([]);
+  const [customersData, setCustomersData]   = useState([]);
+  const [loading, setLoading]               = useState(true);
   const [statusFilter, setStatus]           = useState('All');
   const [showAdd, setShowAdd]               = useState(false);
   const [showEdit, setShowEdit]             = useState(false);
@@ -70,7 +66,27 @@ export default function Broadcast() {
   const [editScheduleDate, setEditScheduleDate] = useState('');
   const [editScheduleError, setEditScheduleError] = useState('');
 
- 
+  async function fetchBroadcasts() {
+    setLoading(true);
+    const { data } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setBroadcasts(data);
+    setLoading(false);
+  }
+
+  async function fetchCustomers() {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email, phone, loyalty')
+      .order('name');
+    if (data) setCustomersData(data);
+  }
+
+  useEffect(() => { fetchBroadcasts(); fetchCustomers(); }, []);
+
+  // Auto-check scheduled broadcasts
   const intervalRef = useRef(null);
   const addTitleRef  = useRef(null);
   const editTitleRef = useRef(null);
@@ -80,8 +96,8 @@ export default function Broadcast() {
       const now = new Date();
       setBroadcasts(prev =>
         prev.map(b =>
-          b.status === 'Scheduled' && new Date(b.scheduledAt) <= now
-            ? { ...b, status: 'Sent', sentAt: now.toISOString(), scheduledAt: null }
+          b.status === 'Scheduled' && b.scheduled_at && new Date(b.scheduled_at) <= now
+            ? { ...b, status: 'Sent', sent_at: now.toISOString(), scheduled_at: null }
             : b
         )
       );
@@ -113,8 +129,8 @@ export default function Broadcast() {
 
   const sentCount       = broadcasts.filter(b => b.status === 'Sent').length;
   const scheduledCount  = broadcasts.filter(b => b.status === 'Scheduled').length;
-  const totalRecipients = broadcasts.filter(b => b.status === 'Sent').reduce((s, b) => s + b.recipients.length, 0);
-  const previewRecipients = getRecipients(form.target, manualSelected);
+  const totalRecipients = broadcasts.filter(b => b.status === 'Sent').reduce((s, b) => s + (b.recipient_count || 0), 0);
+  const previewRecipients = getRecipients(form.target, manualSelected, customersData);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -138,7 +154,7 @@ export default function Broadcast() {
     setDeliveryMode('draft');
     setFormErrors({});
   }
-  function handleAddSubmit(e) {
+  async function handleAddSubmit(e) {
     e.preventDefault();
     const errors = {};
 
@@ -155,19 +171,24 @@ export default function Broadcast() {
     }
 
     const now = new Date().toISOString();
-    let status = 'Draft', sentAt = null, scheduledAt = null;
+    let status = 'Draft', sent_at = null, scheduled_at = null;
 
-    if (deliveryMode === 'send_now') { status = 'Sent';      sentAt = now; }
-    if (deliveryMode === 'schedule') { status = 'Scheduled'; scheduledAt = scheduleDate; }
+    if (deliveryMode === 'send_now') { status = 'Sent';      sent_at = now; }
+    if (deliveryMode === 'schedule') { status = 'Scheduled'; scheduled_at = scheduleDate; }
 
-    const recs  = getRecipients(form.target, manualSelected);
-    const newId = `BC-${String(broadcasts.length + 1).padStart(3, '0')}`;
-    setBroadcasts([{
+    const recs  = getRecipients(form.target, manualSelected, customersData);
+    const { data: last } = await supabase.from('broadcasts').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('BC-', ''), 10) : 0;
+    const newId = `BC-${String(lastNum + 1).padStart(3, '0')}`;
+
+    const { error } = await supabase.from('broadcasts').insert({
       id: newId, title: form.title.trim(), message: form.message.trim(),
-      channel: form.channel, target: form.target, recipients: recs,
-      status, createdAt: now, sentAt, scheduledAt,
-    }, ...broadcasts]);
-    handleAddClose();
+      channel: form.channel, target: form.target, recipient_count: recs.length,
+      status, sent_at, scheduled_at
+    });
+
+    if (!error) { await fetchBroadcasts(); handleAddClose(); }
+    else alert('Gagal membuat broadcast: ' + error.message);
   }
 
   // Edit
@@ -187,9 +208,8 @@ export default function Broadcast() {
     setEditScheduleDate('');
     setEditScheduleError('');
   }
-  function handleEditSubmit(e) {
+  async function handleEditSubmit(e) {
     e.preventDefault();
-    // Validasi jadwal jika mode schedule
     if (selected?.status === 'Draft' && editDeliveryMode === 'schedule') {
       if (!editScheduleDate) return;
       if (new Date(editScheduleDate) <= new Date()) {
@@ -203,24 +223,28 @@ export default function Broadcast() {
 
     if (selected?.status === 'Draft') {
       if (editDeliveryMode === 'send_now') {
-        statusUpdate = { status: 'Sent', sentAt: now, scheduledAt: null };
+        statusUpdate = { status: 'Sent', sent_at: now, scheduled_at: null };
       } else if (editDeliveryMode === 'schedule') {
-        statusUpdate = { status: 'Scheduled', scheduledAt: editScheduleDate, sentAt: null };
+        statusUpdate = { status: 'Scheduled', scheduled_at: editScheduleDate, sent_at: null };
       }
-      // 'draft' → tidak ubah status
     }
 
-    setBroadcasts(broadcasts.map(b => b.id === selected.id
-      ? { ...b, title: form.title, message: form.message, channel: form.channel, ...statusUpdate }
-      : b
-    ));
-    handleEditClose();
+    const { error } = await supabase.from('broadcasts').update({
+      title: form.title, message: form.message, channel: form.channel, ...statusUpdate
+    }).eq('id', selected.id);
+
+    if (!error) { await fetchBroadcasts(); handleEditClose(); }
+    else alert('Gagal mengedit broadcast: ' + error.message);
   }
 
   // Delete
   function openDelete(b)         { setSelected(b); setShowDelete(true); }
   function handleDeleteClose()   { setShowDelete(false); setSelected(null); }
-  function handleDeleteConfirm() { setBroadcasts(broadcasts.filter(b => b.id !== selected.id)); handleDeleteClose(); }
+  async function handleDeleteConfirm() {
+    const { error } = await supabase.from('broadcasts').delete().eq('id', selected.id);
+    if (!error) { await fetchBroadcasts(); handleDeleteClose(); }
+    else alert('Gagal menghapus broadcast: ' + error.message);
+  }
 
   // Detail - removed
 
@@ -277,14 +301,14 @@ export default function Broadcast() {
                     <TableCell><span className="text-xs font-mono text-primary-3">{b.id}</span></TableCell>
                     <TableCell><span className="text-sm font-medium text-primary-2">{b.title}</span></TableCell>
                     <TableCell><LabelBadge label={b.channel} bgClass={cb.bgClass} textClass={cb.textClass} /></TableCell>
-                    <TableCell><span className="text-sm font-semibold text-primary-2">{b.recipients.length}</span></TableCell>
+                    <TableCell><span className="text-sm font-semibold text-primary-2">{b.recipient_count || 0}</span></TableCell>
                     <TableCell>
                       <span className="text-xs text-neutral-teks">
-                        {b.sentAt
-                          ? `Dikirim: ${formatDate(b.sentAt)}`
-                          : b.scheduledAt
-                            ? `Jadwal: ${formatDate(b.scheduledAt)}`
-                            : formatDate(b.createdAt)}
+                        {b.sent_at
+                          ? `Dikirim: ${formatDate(b.sent_at)}`
+                          : b.scheduled_at
+                            ? `Jadwal: ${formatDate(b.scheduled_at)}`
+                            : formatDate(b.created_at)}
                       </span>
                     </TableCell>
                     <TableCell><LabelBadge label={b.status} bgClass={sb.bgClass} textClass={sb.textClass} /></TableCell>

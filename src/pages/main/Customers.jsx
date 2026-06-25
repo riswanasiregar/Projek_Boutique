@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 
 import { LoyaltyBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
@@ -41,16 +41,29 @@ function buildPageRange(current, total) {
 
 export default function Customers() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [customers, setCustomers] = useState(customersData);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [activeFilter, setFilter] = useState('All');
   const [showForm, setShowForm]   = useState(false);
   const [form, setForm]           = useState(emptyForm);
   const [page, setPage]           = useState(1);
 
+  // Fetch customers from Supabase
+  async function fetchCustomers() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('id', { ascending: true });
+    if (!error && data) setCustomers(data);
+    setLoading(false);
+  }
+  useEffect(() => { fetchCustomers(); }, []);
+
   const filtered = customers.filter(c => {
     const matchLoyalty = activeFilter === 'All' || c.loyalty === activeFilter;
     const q = searchQuery.toLowerCase();
-    return matchLoyalty && (!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
+    return matchLoyalty && (!q || c.name.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q));
   });
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -61,11 +74,29 @@ export default function Customers() {
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
   function handleClose()   { setShowForm(false); setForm(emptyForm); }
-  function handleSubmit(e) {
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    const newId = `CUST-${String(customers.length + 1).padStart(3, '0')}`;
-    setCustomers([{ id: newId, ...form }, ...customers]);
-    handleClose();
+    // Generate next ID
+    const { data: last } = await supabase
+      .from('customers')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('CUST-', ''), 10) : 0;
+    const newId = `CUST-${String(lastNum + 1).padStart(3, '0')}`;
+
+    const { error } = await supabase
+      .from('customers')
+      .insert({ id: newId, name: form.name, email: form.email, phone: form.phone, loyalty: form.loyalty });
+
+    if (!error) {
+      await fetchCustomers();
+      handleClose();
+    } else {
+      alert('Gagal menambah customer: ' + error.message);
+    }
   }
 
   const summaryCards = [
@@ -114,7 +145,13 @@ export default function Customers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center text-sm text-neutral-teks font-inter">
                     No customers found

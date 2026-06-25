@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getCurrentUser } from '../utils/auth';
+import { supabase } from '../lib/supabase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,12 +23,34 @@ const pageTitles = {
 
 const searchablePages = ['/orders', '/customers'];
 
+/** Helper: inisial dari nama (max 2 huruf) */
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
 export default function Header({ onSearch, onMenuToggle }) {
   const [search, setSearch] = useState('');
+  const [user, setUser]     = useState(null);
   const searchInputRef = useRef(null); // useRef: akses langsung ke search input DOM
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname] || 'Page';
   const showSearch = searchablePages.includes(location.pathname);
+
+  // Fetch profil user saat mount + subscribe auth changes
+  useEffect(() => {
+    getCurrentUser().then(setUser);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        getCurrentUser().then(setUser);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const notifications = [
     { id: 1, text: 'New order from Andi Saputra',       time: '2m ago',  unread: true  },
@@ -156,16 +180,27 @@ export default function Header({ onSearch, onMenuToggle }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Profile avatar */}
-        <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer flex-shrink-0"
-          style={{ border: '2px solid #E6EFF5' }}>
-          <img src="/img/profile.jpg" alt="Admin" className="w-full h-full object-cover"
-            onError={e => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement.style.background = '#E7EDFF';
-              e.currentTarget.parentElement.innerHTML = '<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:14px;font-weight:700;color:#2D60FF">A</span>';
-            }} />
-        </div>
+        {/* Profile avatar — dari Supabase */}
+        {user?.avatar_url ? (
+          <div className="w-10 h-10 rounded-full overflow-hidden cursor-pointer flex-shrink-0"
+            style={{ border: '2px solid #E6EFF5' }}>
+            <img src={user.avatar_url} alt={user.name}
+              className="w-full h-full object-cover"
+              onError={e => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement.style.background = '#E7EDFF';
+                e.currentTarget.parentElement.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:14px;font-weight:700;color:#2D60FF">${getInitials(user.name)}</span>`;
+              }} />
+          </div>
+        ) : (
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 text-sm font-bold"
+            style={{ background: '#E7EDFF', color: '#2D60FF', border: '2px solid #E6EFF5' }}
+            title={user?.name ?? ''}
+          >
+            {getInitials(user?.name)}
+          </div>
+        )}
       </div>
     </header>
   );

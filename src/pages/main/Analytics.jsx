@@ -1,13 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import ordersData from '../../data/orders.json';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 import { FilterChip, LabelBadge, LoyaltyBadge } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
 import LineChart from '../../components/LineChart';
 import Container, { PageSection } from '../../components/Container';
 
-/* ── helpers ── */
 function fmtRp(v) { return 'Rp ' + Math.round(v || 0).toLocaleString('id-ID'); }
 function fmtDate(d) {
   if (!d) return 'Belum pernah order';
@@ -18,26 +16,6 @@ function monthLabel(ym) {
   const [yr, mo] = ym.split('-');
   return MONTH_NAMES[parseInt(mo) - 1] + "'" + yr.slice(2);
 }
-
-/* ── static data ── */
-const productsData = [
-  { id:'PRD-001', name:'Floral Summer Dress',  category:'Dress',     price:350000, stock:15 },
-  { id:'PRD-002', name:'Classic White Blouse',  category:'Top',       price:180000, stock:30 },
-  { id:'PRD-003', name:'High-Waist Trousers',   category:'Bottom',    price:275000, stock:20 },
-  { id:'PRD-004', name:'Knit Cardigan',          category:'Outerwear', price:420000, stock:12 },
-  { id:'PRD-005', name:'Silk Midi Skirt',        category:'Bottom',    price:310000, stock:18 },
-  { id:'PRD-006', name:'Linen Blazer',           category:'Outerwear', price:580000, stock:8  },
-  { id:'PRD-007', name:'Wrap Maxi Dress',        category:'Dress',     price:450000, stock:10 },
-  { id:'PRD-008', name:'Crop Cami Top',          category:'Top',       price:120000, stock:25 },
-  { id:'PRD-009', name:'Wide Leg Jeans',         category:'Bottom',    price:390000, stock:14 },
-  { id:'PRD-010', name:'Trench Coat',            category:'Outerwear', price:850000, stock:5  },
-];
-const orderItemsMap = {
-  'ORD-001': [{ name:'Floral Midi Dress' }, { name:'Pastel Cardigan' }],
-  'ORD-002': [{ name:'Linen Blouse' }],
-  'ORD-003': [{ name:'Summer Shorts' }],
-  'ORD-004': [{ name:'Evening Gown' }, { name:'Silk Scarf' }],
-};
 
 /* ── sub-charts ── */
 const DONUT_COLORS = { Completed:'#16DBCC', Pending:'#FFBB38', Cancelled:'#FE5C73' };
@@ -124,6 +102,11 @@ function ScatterChart({ points }) {
 export default function Analytics() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [period, setPeriod]       = useState('All Time');
+  const [ordersData, setOrdersData] = useState([]);
+  const [customersData, setCustomersData] = useState([]);
+  const [productsData, setProductsData] = useState([]);
+  const [orderItemsMap, setOrderItemsMap] = useState({});
+  const [loading, setLoading] = useState(true);
 
   // useRef: scroll tab aktif ke tengah saat berpindah
   const tabContainerRef = useRef(null);
@@ -133,6 +116,37 @@ export default function Analytics() {
     activeTabBtnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [activeTab]);
 
+  useEffect(() => {
+    async function fetchData() {
+      const [{ data: orders }, { data: customers }, { data: products }, { data: items }] = await Promise.all([
+        supabase.from('orders').select('*, customers(name)').order('id'),
+        supabase.from('customers').select('*').order('id'),
+        supabase.from('products').select('*').order('id'),
+        supabase.from('order_items').select('*').order('id'),
+      ]);
+      setOrdersData((orders || []).map(o => ({
+        ...o,
+        orderDate: o.order_date,
+        totalPrice: o.total_price,
+        customerName: o.customers?.name || '',
+      })));
+      setCustomersData(customers || []);
+      setProductsData((products || []).map(p => ({
+        ...p,
+        price: p.price || 0,
+        stock: p.stock || 0,
+      })));
+      const map = {};
+      (items || []).forEach(i => {
+        if (!map[i.order_id]) map[i.order_id] = [];
+        map[i.order_id].push({ name: i.product_name || i.name });
+      });
+      setOrderItemsMap(map);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
   const periodStart = useMemo(() => {
     if (period === '30 Hari') return new Date(Date.now() - 30*24*60*60*1000);
     if (period === '3 Bulan') return new Date(Date.now() - 90*24*60*60*1000);
@@ -141,7 +155,7 @@ export default function Analytics() {
 
   const filteredOrders = useMemo(() =>
     periodStart ? ordersData.filter(o => new Date(o.orderDate) >= periodStart) : ordersData,
-  [periodStart]);
+  [periodStart, ordersData]);
 
   /* KPI */
   const avgCLV = useMemo(() => {
@@ -151,7 +165,7 @@ export default function Analytics() {
     });
     const v = Object.values(map);
     return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
-  }, []);
+  }, [ordersData]);
 
   const churnRiskCustomers = useMemo(() => {
     const cutoff = new Date(Date.now() - 30*24*60*60*1000);
@@ -165,7 +179,7 @@ export default function Analytics() {
       const days = last ? Math.floor((Date.now()-new Date(last.orderDate))/86400000) : null;
       return { ...c, lastOrderDate: last?.orderDate||null, daysSince: days };
     });
-  }, []);
+  }, [customersData, ordersData]);
 
   const conversionRate = useMemo(() => {
     if (!filteredOrders.length) return 0;
@@ -210,7 +224,7 @@ export default function Analytics() {
     return customersData
       .map(c=>({...c, clv:clv[c.name]||0, orderCount:cnt[c.name]||0}))
       .sort((a,b)=>b.clv-a.clv);
-  }, []);
+  }, [ordersData, customersData]);
 
   /* Cohort retention */
   const cohortData = useMemo(() => {
@@ -236,7 +250,7 @@ export default function Analytics() {
         rate: custs.length ? (retained/custs.length)*100 : 0,
       };
     });
-  }, []);
+  }, [ordersData]);
 
   /* Monthly active customers */
   const monthlyActive = useMemo(() => {
@@ -260,7 +274,7 @@ export default function Analytics() {
         (new Date(o.orderDate)-new Date(orders[i].orderDate))/86400000);
       return [{ name:c.name, orderCount:orders.length, avgFreq:diffs.reduce((a,b)=>a+b,0)/diffs.length }];
     }).sort((a,b)=>a.avgFreq-b.avgFreq);
-  }, []);
+  }, [customersData, ordersData]);
 
   /* AOV trend */
   const aovTrend = useMemo(() => {
@@ -291,7 +305,7 @@ export default function Analytics() {
       c[item.name]=(c[item.name]||0)+1;
     }));
     return Object.entries(c).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
-  }, []);
+  }, [orderItemsMap]);
 
   const categoryPerf = useMemo(() => {
     const c={};
@@ -301,20 +315,22 @@ export default function Analytics() {
     }));
     const total = Object.values(c).reduce((a,b)=>a+b,0);
     return Object.entries(c).map(([cat,count])=>({cat,count,pct:total?count/total:0})).sort((a,b)=>b.count-a.count);
-  }, []);
+  }, [orderItemsMap, productsData]);
 
   const stockTurnover = useMemo(() =>
     [...productsData].map(p=>({...p,invVal:p.price*p.stock})).sort((a,b)=>b.invVal-a.invVal),
-  []);
+  [productsData]);
 
   const scatterPoints = useMemo(() => {
     const d={};
     Object.values(orderItemsMap).forEach(items=>items.forEach(i=>{ d[i.name]=(d[i.name]||0)+1; }));
     return productsData.map(p=>({name:p.name, price:p.price, demand:d[p.name]||0}));
-  }, []);
+  }, [orderItemsMap, productsData]);
 
   const totalStatus = Object.values(statusCounts).reduce((a,b)=>a+b,0);
   const avgFreqAll  = purchaseFreq.length ? purchaseFreq.reduce((a,b)=>a+b.avgFreq,0)/purchaseFreq.length : 0;
+
+  if (loading) return <Container><p className="text-center py-12 text-neutral-teks font-inter">Memuat data...</p></Container>;
 
   return (
     <Container>

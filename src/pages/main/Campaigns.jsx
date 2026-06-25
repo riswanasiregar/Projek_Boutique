@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import customersData from '../../data/customers.json';
+import { supabase } from '../../lib/supabase';
 import { LabelBadge, FilterChip } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
 import { TableRow, TableCell } from '../../components/Table';
@@ -35,23 +35,6 @@ function getCampaignStatus(startDate, endDate) {
   return 'Active';
 }
 
-const today = new Date();
-const initialCampaigns = [
-  { id: 'CAMP-001', name: 'Giveaway Lebaran 2026',    type: 'Giveaway', description: 'Giveaway dress eksklusif untuk merayakan Lebaran.',  startDate: '2026-02-01', endDate: '2026-02-28', maxParticipants: 50,  createdAt: '2026-01-20T10:00:00' },
-  { id: 'CAMP-002', name: 'Diskon Member Gold',        type: 'Discount', description: 'Diskon 30% khusus member Gold untuk semua produk.', startDate: '2026-03-01', endDate: '2026-03-31', maxParticipants: null, createdAt: '2026-02-20T09:00:00' },
-  { id: 'CAMP-003', name: 'Fashion Week Event',        type: 'Event',    description: 'Event fashion week eksklusif boutique.',             startDate: '2026-03-15', endDate: '2026-03-20', maxParticipants: 100, createdAt: '2026-02-25T11:00:00' },
-  { id: 'CAMP-004', name: 'Referral Program Q1',       type: 'Referral', description: 'Ajak teman dan dapatkan voucher Rp 50.000.',         startDate: '2026-01-01', endDate: '2026-03-31', maxParticipants: null, createdAt: '2025-12-20T08:00:00' },
-  { id: 'CAMP-005', name: 'Summer Collection Launch',  type: 'Event',    description: 'Peluncuran koleksi musim panas terbaru.',             startDate: '2026-04-01', endDate: '2026-04-07', maxParticipants: 200, createdAt: '2026-03-01T10:00:00' },
-];
-
-const initialParticipants = [
-  { id: 'CP-001', campaignId: 'CAMP-001', customerId: 'CUST-001', customerName: 'Andi Saputra',  loyaltyTier: 'Gold',   joinedAt: '2026-02-05T10:00:00' },
-  { id: 'CP-002', campaignId: 'CAMP-001', customerId: 'CUST-004', customerName: 'Dewi Lestari',  loyaltyTier: 'Gold',   joinedAt: '2026-02-06T11:00:00' },
-  { id: 'CP-003', campaignId: 'CAMP-002', customerId: 'CUST-008', customerName: 'Hana Pertiwi',  loyaltyTier: 'Gold',   joinedAt: '2026-03-02T09:00:00' },
-  { id: 'CP-004', campaignId: 'CAMP-002', customerId: 'CUST-010', customerName: 'Joko Widodo',   loyaltyTier: 'Gold',   joinedAt: '2026-03-03T14:00:00' },
-  { id: 'CP-005', campaignId: 'CAMP-004', customerId: 'CUST-002', customerName: 'Siti Rahayu',   loyaltyTier: 'Silver', joinedAt: '2026-01-10T08:00:00' },
-];
-
 const emptyForm = { name: '', type: 'Giveaway', description: '', startDate: '', endDate: '', maxParticipants: '' };
 
 function formatDate(iso) { if (!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -61,8 +44,10 @@ function IconUsers() { return <svg className="w-4 h-4" fill="none" stroke="curre
 
 export default function Campaigns() {
   const { searchQuery = '' } = useOutletContext?.() || {};
-  const [campaigns, setCampaigns]     = useState(initialCampaigns);
-  const [participants, setParticipants] = useState(initialParticipants);
+  const [campaigns, setCampaigns]     = useState([]);
+  const [participants, setParticipants] = useState([]);
+  const [customersData, setCustomersData] = useState([]);
+  const [loading, setLoading]         = useState(true);
   const [statusFilter, setStatus]     = useState('All');
   const [showAdd, setShowAdd]         = useState(false);
   const [showEdit, setShowEdit]       = useState(false);
@@ -72,8 +57,34 @@ export default function Campaigns() {
   const [form, setForm]               = useState(emptyForm);
   const [addPartId, setAddPartId]     = useState('');
 
+  async function fetchCampaigns() {
+    setLoading(true);
+    const { data: camps } = await supabase
+      .from('campaigns')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (camps) setCampaigns(camps);
+
+    const { data: parts } = await supabase
+      .from('campaign_participants')
+      .select('*, customers(name)')
+      .order('joined_at', { ascending: false });
+    if (parts) setParticipants(parts);
+    setLoading(false);
+  }
+
+  async function fetchCustomers() {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email, phone, loyalty')
+      .order('name');
+    if (data) setCustomersData(data);
+  }
+
+  useEffect(() => { fetchCampaigns(); fetchCustomers(); }, []);
+
   const campaignsWithStatus = useMemo(() =>
-    campaigns.map(c => ({ ...c, status: getCampaignStatus(c.startDate, c.endDate) })),
+    campaigns.map(c => ({ ...c, status: getCampaignStatus(c.start_date, c.end_date) })),
     [campaigns]
   );
 
@@ -89,57 +100,80 @@ export default function Campaigns() {
   const totalPart   = participants.length;
   const mostPopular = useMemo(() => {
     if (!campaigns.length) return '-';
-    const counts = campaigns.map(c => ({ name: c.name, count: participants.filter(p => p.campaignId === c.id).length }));
+    const counts = campaigns.map(c => ({ name: c.name, count: participants.filter(p => p.campaign_id === c.id).length }));
     return counts.reduce((a,b) => b.count > a.count ? b : a, counts[0]).name;
   }, [campaigns, participants]);
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
 
+  // Add
   function handleAddClose()   { setShowAdd(false); setForm(emptyForm); }
-  function handleAddSubmit(e) {
+  async function handleAddSubmit(e) {
     e.preventDefault();
     if (form.endDate && form.startDate && form.endDate <= form.startDate) { alert('Tanggal berakhir harus setelah tanggal mulai'); return; }
-    const newId = `CAMP-${String(campaigns.length + 1).padStart(3,'0')}`;
-    setCampaigns([...campaigns, { id: newId, name: form.name, type: form.type, description: form.description, startDate: form.startDate, endDate: form.endDate, maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : null, createdAt: new Date().toISOString() }]);
-    handleAddClose();
+    const { data: last } = await supabase.from('campaigns').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('CAMP-', ''), 10) : 0;
+    const newId = `CAMP-${String(lastNum + 1).padStart(3, '0')}`;
+    const { error } = await supabase.from('campaigns').insert({
+      id: newId, name: form.name, type: form.type, description: form.description,
+      start_date: form.startDate, end_date: form.endDate,
+      max_participants: form.maxParticipants ? Number(form.maxParticipants) : null
+    });
+    if (!error) { await fetchCampaigns(); handleAddClose(); }
+    else alert('Gagal membuat campaign: ' + error.message);
   }
 
-  function openEdit(c)         { setSelected(c); setForm({ name: c.name, type: c.type, description: c.description, startDate: c.startDate, endDate: c.endDate, maxParticipants: c.maxParticipants ? String(c.maxParticipants) : '' }); setShowEdit(true); }
+  function openEdit(c) {
+    setSelected(c);
+    setForm({ name: c.name, type: c.type, description: c.description, startDate: c.start_date, endDate: c.end_date, maxParticipants: c.max_participants ? String(c.max_participants) : '' });
+    setShowEdit(true);
+  }
   function handleEditClose()   { setShowEdit(false); setSelected(null); setForm(emptyForm); }
-  function handleEditSubmit(e) {
+  async function handleEditSubmit(e) {
     e.preventDefault();
     if (form.endDate && form.startDate && form.endDate <= form.startDate) { alert('Tanggal berakhir harus setelah tanggal mulai'); return; }
-    setCampaigns(campaigns.map(c => c.id === selected.id ? { ...c, name: form.name, type: form.type, description: form.description, startDate: form.startDate, endDate: form.endDate, maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : null } : c));
-    handleEditClose();
+    const { error } = await supabase.from('campaigns').update({
+      name: form.name, type: form.type, description: form.description,
+      start_date: form.startDate, end_date: form.endDate,
+      max_participants: form.maxParticipants ? Number(form.maxParticipants) : null
+    }).eq('id', selected.id);
+    if (!error) { await fetchCampaigns(); handleEditClose(); }
+    else alert('Gagal mengedit campaign: ' + error.message);
   }
 
   function openDelete(c)         { setSelected(c); setShowDelete(true); }
   function handleDeleteClose()   { setShowDelete(false); setSelected(null); }
-  function handleDeleteConfirm() {
-    setCampaigns(campaigns.filter(c => c.id !== selected.id));
-    setParticipants(participants.filter(p => p.campaignId !== selected.id));
-    handleDeleteClose();
+  async function handleDeleteConfirm() {
+    const { error } = await supabase.from('campaigns').delete().eq('id', selected.id);
+    if (!error) { await fetchCampaigns(); handleDeleteClose(); }
+    else alert('Gagal menghapus campaign: ' + error.message);
   }
 
   function openParticipants(c) { setSelected(c); setAddPartId(''); setShowPart(true); }
   function handlePartClose()   { setShowPart(false); setSelected(null); setAddPartId(''); }
 
-  const campParticipants = selected ? participants.filter(p => p.campaignId === selected.id) : [];
-  const availableCustomers = selected ? customersData.filter(c => !participants.find(p => p.campaignId === selected.id && p.customerId === c.id)) : [];
+  const campParticipants = selected ? participants.filter(p => p.campaign_id === selected.id) : [];
+  const availableCustomers = selected ? customersData.filter(c => !participants.find(p => p.campaign_id === selected.id && p.customer_id === c.id)) : [];
 
-  function handleAddParticipant() {
+  async function handleAddParticipant() {
     if (!addPartId) return;
     const cust = customersData.find(c => c.id === addPartId);
     if (!cust) return;
     const camp = campaignsWithStatus.find(c => c.id === selected.id);
-    if (camp?.maxParticipants && campParticipants.length >= camp.maxParticipants) { alert('Kuota peserta penuh.'); return; }
-    const newPart = { id: `CP-${String(participants.length+1).padStart(3,'0')}`, campaignId: selected.id, customerId: cust.id, customerName: cust.name, loyaltyTier: cust.loyalty, joinedAt: new Date().toISOString() };
-    setParticipants([...participants, newPart]);
-    setAddPartId('');
+    if (camp?.max_participants && campParticipants.length >= camp.max_participants) { alert('Kuota peserta penuh.'); return; }
+    const { data: last } = await supabase.from('campaign_participants').select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+    const lastNum = last ? parseInt(last.id.replace('CP-', ''), 10) : 0;
+    const newId = `CP-${String(lastNum + 1).padStart(3, '0')}`;
+    const { error } = await supabase.from('campaign_participants').insert({
+      id: newId, campaign_id: selected.id, customer_id: cust.id, loyalty_tier: cust.loyalty
+    });
+    if (!error) { await fetchCampaigns(); setAddPartId(''); }
+    else alert('Gagal menambah peserta: ' + error.message);
   }
 
-  function removeParticipant(partId) {
-    setParticipants(participants.filter(p => p.id !== partId));
+  async function removeParticipant(partId) {
+    const { error } = await supabase.from('campaign_participants').delete().eq('id', partId);
+    if (!error) await fetchCampaigns();
   }
 
   const summaryCards = [
@@ -188,7 +222,7 @@ export default function Campaigns() {
               ) : filtered.map((c, i) => {
                 const tb = TYPE_BADGE[c.type]   || TYPE_BADGE.Event;
                 const sb = STATUS_BADGE[c.status] || STATUS_BADGE.Draft;
-                const partCount = participants.filter(p => p.campaignId === c.id).length;
+                const partCount = participants.filter(p => p.campaign_id === c.id).length;
                 const isActive  = c.status === 'Active';
                 return (
                   <TableRow key={c.id} className={isActive ? 'bg-accent-green-shadow/30' : ''}>
@@ -198,11 +232,11 @@ export default function Campaigns() {
                       <span className={`text-sm font-medium ${isActive ? 'text-accent-green' : 'text-primary-2'}`}>{c.name}</span>
                     </TableCell>
                     <TableCell><LabelBadge label={c.type} bgClass={tb.bgClass} textClass={tb.textClass} /></TableCell>
-                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(c.startDate)}</span></TableCell>
-                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(c.endDate)}</span></TableCell>
+                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(c.start_date)}</span></TableCell>
+                    <TableCell><span className="text-xs text-neutral-teks">{formatDate(c.end_date)}</span></TableCell>
                     <TableCell>
                       <span className="text-sm font-semibold text-primary-2">
-                        {partCount}{c.maxParticipants ? ` / ${c.maxParticipants}` : ''}
+                        {partCount}{c.max_participants ? ` / ${c.max_participants}` : ''}
                       </span>
                     </TableCell>
                     <TableCell><LabelBadge label={c.status} bgClass={sb.bgClass} textClass={sb.textClass} /></TableCell>
@@ -262,7 +296,7 @@ export default function Campaigns() {
             <div className="px-6 py-4 flex items-center justify-between bg-primary-3 flex-shrink-0">
               <div>
                 <h3 className="text-base font-bold text-neutral font-inter">Kelola Peserta</h3>
-                <p className="text-xs text-neutral/70 font-inter">{selected.name} · {campParticipants.length}{selected.maxParticipants ? ` / ${selected.maxParticipants}` : ''} peserta</p>
+                <p className="text-xs text-neutral/70 font-inter">{selected.name} · {campParticipants.length}{selected.max_participants ? ` / ${selected.max_participants}` : ''} peserta</p>
               </div>
               <button onClick={handlePartClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral/70 hover:text-neutral text-lg leading-none">✕</button>
             </div>
@@ -299,16 +333,16 @@ export default function Campaigns() {
                           <td className="px-4 py-3 text-xs text-neutral-teks font-inter">{i+1}.</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Avatar name={p.customerName} size="sm" bgClass="bg-accent-green-shadow" textClass="text-accent-green" />
-                              <span className="text-sm font-medium text-primary-2">{p.customerName}</span>
+                              <Avatar name={p.customers?.name || '-'} size="sm" bgClass="bg-accent-green-shadow" textClass="text-accent-green" />
+                              <span className="text-sm font-medium text-primary-2">{p.customers?.name || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <LabelBadge label={p.loyaltyTier}
-                              bgClass={p.loyaltyTier==='Gold' ? 'bg-accent-yellow-shadow' : p.loyaltyTier==='Silver' ? 'bg-accent-blue-shadow' : 'bg-accent-pink-shadow'}
-                              textClass={p.loyaltyTier==='Gold' ? 'text-accent-yellow' : p.loyaltyTier==='Silver' ? 'text-accent-blue' : 'text-secondary'} />
+                            <LabelBadge label={p.loyalty_tier}
+                              bgClass={p.loyalty_tier==='Gold' ? 'bg-accent-yellow-shadow' : p.loyalty_tier==='Silver' ? 'bg-accent-blue-shadow' : 'bg-accent-pink-shadow'}
+                              textClass={p.loyalty_tier==='Gold' ? 'text-accent-yellow' : p.loyalty_tier==='Silver' ? 'text-accent-blue' : 'text-secondary'} />
                           </td>
-                          <td className="px-4 py-3 text-xs text-neutral-teks font-inter">{formatDate(p.joinedAt)}</td>
+                          <td className="px-4 py-3 text-xs text-neutral-teks font-inter">{formatDate(p.joined_at)}</td>
                           <td className="px-4 py-3">
                             <button onClick={() => removeParticipant(p.id)} className="p-1 rounded-lg text-secondary hover:bg-accent-pink-shadow transition-colors">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

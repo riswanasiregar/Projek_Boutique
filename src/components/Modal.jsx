@@ -5,6 +5,7 @@ export default function Modal({
   subtitle,
   children,
   footer,
+  wide = false,
 }) {
   if (!isOpen) return null;
 
@@ -13,7 +14,7 @@ export default function Modal({
       className="fixed inset-0 flex items-center justify-center z-50 px-4
       bg-primary-2/50 backdrop-blur-sm"
     >
-      <div className="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden bg-neutral">
+      <div className={`rounded-2xl shadow-2xl w-full overflow-hidden bg-neutral ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between bg-primary-3">
           <div>

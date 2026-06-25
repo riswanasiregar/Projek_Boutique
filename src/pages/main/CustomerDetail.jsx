@@ -1,6 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import customersData from '../../data/customers.json';
-import ordersData from '../../data/orders.json';
+import { supabase } from '../../lib/supabase';
 
 import { LoyaltyBadge, StatusBadge } from '../../components/Badge';
 import { StatCard, CardHeader } from '../../components/Card';
@@ -14,7 +14,38 @@ import InfoRow from '../../components/InfoRow';
 export default function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const customer = customersData.find(c => c.id === id);
+  const [customer, setCustomer]     = useState(null);
+  const [customerOrders, setOrders] = useState([]);
+  const [loading, setLoading]       = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      // Fetch customer
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (cust) {
+        setCustomer(cust);
+        // Fetch orders for this customer
+        const { data: ords } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('customer_id', cust.id)
+          .order('order_date', { ascending: false });
+        if (ords) setOrders(ords);
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, [id]);
+
+  if (loading) return (
+    <Container>
+      <p className="text-center py-20 text-neutral-teks font-inter">Memuat data...</p>
+    </Container>
+  );
 
   if (!customer) return (
     <EmptyState
@@ -34,12 +65,9 @@ export default function CustomerDetail() {
     />
   );
 
-  const customerOrders = ordersData.filter(
-    o => o.customerName.toLowerCase() === customer.name.toLowerCase()
-  );
   const totalSpend = customerOrders
     .filter(o => o.status === 'Completed')
-    .reduce((s, o) => s + o.totalPrice, 0);
+    .reduce((s, o) => s + o.total_price, 0);
 
   const loyaltyIconClass = {
     Gold:   'bg-accent-yellow-shadow text-accent-yellow',
@@ -155,10 +183,10 @@ export default function CustomerDetail() {
                       className="text-xs font-semibold text-primary-3 hover:underline font-mono">
                       {order.id}
                     </Link>
-                    <p className="text-xs text-neutral-teks font-inter">{order.orderDate}</p>
+                    <p className="text-xs text-neutral-teks font-inter">{order.order_date}</p>
                     <StatusBadge status={order.status} />
                     <p className="text-xs font-semibold text-right text-primary-2 font-inter">
-                      Rp {order.totalPrice.toLocaleString('id-ID')}
+                      Rp {order.total_price.toLocaleString('id-ID')}
                     </p>
                   </div>
                 ))}

@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { signOut } from '../utils/auth';
+import { signOut, getCurrentUser } from '../utils/auth';
+import { supabase } from '../lib/supabase';
 
 const F = { fontFamily: '"Inter", sans-serif' };
 
@@ -122,15 +124,44 @@ function NavItem({ item, onClose }) {
           <span className="flex-shrink-0" style={{ color: isActive ? C.activeText : C.muted }}>
             {item.icon}
           </span>
-          <span className="flex-1 font-medium">{item.label}</span>
+          <span className="font-medium flex-1">{item.label}</span>
         </>
       )}
     </NavLink>
   );
 }
 
+/** Helper: ambil inisial dari nama (max 2 huruf) */
+function getInitials(name) {
+  if (!name) return '?';
+  return name
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  // Fetch profil user saat mount + subscribe auth changes
+  useEffect(() => {
+    getCurrentUser().then(setUser);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        // Session berubah (refresh token / login dari tab lain) → re-fetch profil
+        getCurrentUser().then(setUser);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   async function handleLogout() {
     await signOut();
     navigate("/login");
@@ -142,17 +173,8 @@ export default function Sidebar({ onClose }) {
 
       {/* Logo + mobile close button */}
       <div className="px-6 py-6 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: '#E7EDFF' }}>
-            <svg className="w-6 h-6" fill="none" stroke="#2D60FF" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold" style={{ color: C.text, ...F }}>
-            Boutique
-          </span>
+        <div>
+          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 120, height: 60 }} />
         </div>
         {/* Tombol close — hanya tampil di mobile */}
         {onClose && (
@@ -208,18 +230,34 @@ export default function Sidebar({ onClose }) {
         }} onClose={onClose}/>
       </nav>
 
-      {/* User + logout */}
+      {/* User info + logout — data dari Supabase */}
       <div className="px-4 py-5" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
-            style={{ background: '#E7EDFF' }}>
-            <img src="/img/profile.jpg" alt="Admin"
-              className="w-full h-full object-cover"
-              onError={e => { e.currentTarget.style.display = 'none'; }} />
-          </div>
+          {user?.avatar_url ? (
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+              style={{ border: '2px solid #E6EFF5' }}>
+              <img
+                src={user.avatar_url}
+                alt={user.name}
+                className="w-full h-full object-cover"
+                onError={e => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+              style={{ background: '#E7EDFF', color: '#2D60FF' }}
+            >
+              {getInitials(user?.name)}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ color: C.text }}>Admin</p>
-            <p className="text-xs truncate" style={{ color: C.muted }}>boutique@admin.com</p>
+            <p className="text-sm font-semibold truncate" style={{ color: C.text }}>
+              {user?.name ?? '—'}
+            </p>
+            <p className="text-xs truncate" style={{ color: C.muted }}>
+              {user?.email ?? '—'}
+            </p>
           </div>
         </div>
         <button onClick={handleLogout}

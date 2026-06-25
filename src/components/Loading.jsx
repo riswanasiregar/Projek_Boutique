@@ -1,25 +1,22 @@
 export default function Loading() {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: '#f5f0eb' }}>
+      style={{ background: '#FFFFFF' }}>
       <div className="flex flex-col items-center gap-5">
         {/* Boutique logo mark */}
         <div className="relative">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold"
-            style={{ background: '#3d2e22', color: '#c9a96e' }}>
-            B
-          </div>
+          <img src="/img/logoboutique.svg" alt="Boutique" className="object-contain" style={{ width: 180, height: 80 }} />
           {/* Spinning ring */}
           <div className="absolute -inset-2 rounded-2xl border-2 border-transparent animate-spin"
-            style={{ borderTopColor: '#c9a96e', borderRightColor: '#c9a96e33' }} />
+            style={{ borderTopColor: '#2D60FF', borderRightColor: '#2D60FF33' }} />
         </div>
 
         {/* Brand name */}
         <div className="text-center">
-          <p className="text-base font-bold" style={{ color: '#3d2e22' }}>
-            Boutique<span style={{ color: '#c9a96e' }}>.</span>
+          <p className="text-base font-bold" style={{ color: '#343C6A' }}>
+            Boutique<span style={{ color: '#2D60FF' }}>.</span>
           </p>
-          <p className="text-xs mt-0.5" style={{ color: '#9a8878' }}>Loading your fashion dashboard...</p>
+          <p className="text-xs mt-0.5" style={{ color: '#718EBF' }}>Loading...</p>
         </div>
 
         {/* Animated dots */}
@@ -27,7 +24,7 @@ export default function Loading() {
           {[0, 1, 2].map(i => (
             <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce"
               style={{
-                background: '#c9a96e',
+                background: '#2D60FF',
                 animationDelay: `${i * 0.15}s`,
                 animationDuration: '0.8s',
               }} />
