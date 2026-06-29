@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, Navigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { getCurrentUser, signOut } from '../utils/auth';
-import Loading from '../components/Loading';
+import { supabase } from '../../lib/supabase';
+import { getCurrentUser, signOut } from '../../utils/auth';
+import Loading from '../../components/Loading';
 
 const NAV_ITEMS = [
   { label: 'Beranda',      href: '#home' },

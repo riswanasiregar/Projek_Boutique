@@ -3,17 +3,17 @@ import { Routes, Route } from 'react-router-dom';
 import Loading from './components/Loading';
 
 // Layouts
-const GuestLayout    = lazy(() => import('./layouts/GuestLayout'));
+const GuestLayout    = lazy(() => import('./pages/guest/GuestLayout'));
 const AuthLayout     = lazy(() => import('./layouts/AuthLayout'));
 const MainLayout     = lazy(() => import('./layouts/MainLayout'));
-const MemberLayout   = lazy(() => import('./layouts/MemberLayout'));
+const MemberLayout   = lazy(() => import('./pages/member/MemberLayout'));
 const ProtectedRoute = lazy(() => import('./layouts/ProtectedRoute'));
 
 // Guest pages
-const CompanyProfile = lazy(() => import('./pages/guest/CompanyProfile'));
+const GuestHome = lazy(() => import('./pages/guest/Home'));
 
 // Member pages
-const MemberHome = lazy(() => import('./pages/member/MemberHome'));
+const MemberHome = lazy(() => import('./pages/member/Home'));
 
 // Auth pages
 const Login    = lazy(() => import('./pages/auth/Login'));
@@ -53,7 +53,7 @@ export default function App() {
     <Suspense fallback={<Loading />}>
       <Routes>
         <Route element={<GuestLayout />}>
-          <Route path="/guest" element={<CompanyProfile />} />
+          <Route path="/guest" element={<GuestHome />} />
         </Route>
         <Route element={<AuthLayout />}>
           <Route path="/login"    element={<Login />} />
